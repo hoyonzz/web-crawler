@@ -8,6 +8,7 @@ from selenium.webdriver.common.by import By
 # 키보드 입력을 위해 사용할 keys 모듈
 from selenium.webdriver.common.keys import Keys
 from bs4 import BeautifulSoup
+import pandas as pd
 
 
 # 1. WebDriver 설정
@@ -47,24 +48,41 @@ html = driver.page_source
 
 soup = BeautifulSoup(html, 'lxml')
 
+job_list = []
+
 job_cards = soup.select("div[role='listitem'] a")
 
 print(f"총{len(job_cards)}개의 채용 공고를 찾았습니다.")
 
-# 미리보기_ 첫번째 공고의 제목과 회사명 추출하기
-if len(job_cards) > 0:
-    first_card = job_cards[0]
-    
+# 7. 각 공고 카드를 순회하며 정보를 추출
+for card in job_cards:
     # strong 태그이면서 class 이름이 'JobCard_title'로 시작하는 요소 찾기
-    title = first_card.select_one("strong[class*='JobCard_title']").text
+    title = card.select_one("strong[class*='JobCard_title']").text
     # span 태그이면서 class 이름이 'CompanyName'으로 시작하는 요소 찾기
-    company_name = first_card.select_one("span[class*='CompanyName']").text
+    company_name = card.select_one("span[class*='CompanyName']").text
+    # 공고 상세 페이지로 연결되는 링크
+    link = "https://www.wanted.co.kr" + card['href']
     
-    print(f"첫 번째 공고_제목: {title}")
-    print(f"첫 번째 공고_회사명: {company_name}") 
+    # 추출한 정보를 딕셔너리 형태로 저장
+    job_info = {
+        'title': title,
+        'company': company_name,
+        'link':link
+    }
     
-    # 브라우저 닫기
-    driver.quit()
+    job_list.append(job_info)
     
-    print("Selenium 실행이 완료되었습니다.") 
+# 8. pandas DataFrame으로 변환하고 CSV 파일로 저장
+# 딕셔너리 리스트를 바탕으로 DataFrame생성
+df = pd.DataFrame(job_list)
+
+# DataFrame을 CSV 파일로 저장
+df.to_csv("wanted_backend_jobs.csv", index=False, encoding='utf-8-sig')
+
+print("CSV 파일 저장이 완료되었습니다.")
+    
+# 브라우저 닫기
+driver.quit()
+
+print("Selenium 실행이 완료되었습니다.") 
     
