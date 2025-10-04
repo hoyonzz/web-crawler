@@ -49,6 +49,11 @@
 
 이 문법들을 조합하면, 우리는 페이지의 그 어떤 요소라도 '저격'할 수 있게 됩니다.
 
+> **[Troubleshooting]**
+> 원티드와 같은 사이트는 빌드 시 클래스 이름 뒤에 랜덤한 해시값(`JobCard_container__zQcZs` 등)을 붙입니다. 이 값은 웹사이트가 업데이트될 때마다 계속 바뀌므로, 클래스 이름만으로 요소를 찾는 것은 매우 불안정합니다.
+>
+> **해결책:** 우리는 **`role="listitem"`** 이나 **`href="/wd/..."`** 와 같이, 기능과 관련되어 있어 잘 **변하지 않는 다른 속성**을 조합하여 요소를 찾아야 합니다.
+
 ---
 
 ### **3. 기초 실습 (Basic Practice)**
@@ -85,25 +90,46 @@ soup = BeautifulSoup(html, "lxml")
 # 원티드 채용 공고 하나하나를 감싸고 있는 카드 형태의 요소를 찾아야 합니다.
 # 개발자 도구로 확인해보면, 각 공고는 data-cy="job-card" 속성을 가진 div 요소입니다.
 # CSS Selector로 이 요소들을 모두(select) 찾습니다.
-job_cards = soup.select("div[data-cy='job-card']")
+# [수정된 부분]
+# job-card라는 data-cy 속성 대신, 더 안정적인 선택자를 사용합니다.
+# 각 채용 공고는 <a> 태그로 감싸여 있고, 그 링크는 항상 '/wd/'로 시작합니다.
+# 'role="listitem"' 속성을 가진 div의 자손인 a 태그를 선택합니다.
+job_cards = soup.select("div[role='listitem'] a")
 
 # 찾은 공고의 개수를 출력해봅니다.
 print(f"총 {len(job_cards)}개의 채용 공고를 찾았습니다.")
 
-# 7. 브라우저 닫기
+#  (미리보기) 첫 번째 공고의 제목과 회사명 추출하기
+# 결과가 잘 나오는지 확인하기 위해, 첫 번째 공고 카드에서 정보를 추출해봅시다.
+if len(job_cards) > 0:
+    first_card = job_cards[0]
+    
+    # strong 태그이면서 class 이름이 'JobCard_title'로 시작하는 요소를 찾습니다.
+    title = first_card.select_one("strong[class*='JobCard_title']").text
+    # span 태그이면서 class 이름이 'CompanyName'으로 시작하는 요소를 찾습니다.
+    company_name = first_card.select_one("span[class*='CompanyName']").text
+    
+    print(f"첫 번째 공고 제목: {title}")
+    print(f"첫 번째 공고 회사명: {company_name}")
+
+#  브라우저 닫기
 driver.quit()
 
 print("Selenium 실행이 완료되었습니다.")
 
 ```
-*   **주의:** `from bs4 import BeautifulSoup`은 파이썬 파일의 맨 위로 옮겨서 다른 `import` 문들과 함께 관리하는 것이 좋습니다.
+
+**[새로운 CSS Selector 설명]**
+-   `div[role='listitem'] a`: "role 속성 값이 'listitem'인 `div` 요소의 모든 후손 `a` 태그"를 선택합니다. 개발자 도구로 확인하면, 각 공고 카드는 이 구조를 따릅니다.
+-   `strong[class*='JobCard_title']`: `*=`는 '포함'을 의미합니다. 즉, "class 속성 값에 'JobCard_title'이라는 문자열을 포함하는 `strong` 태그"를 선택합니다. 이렇게 하면 뒤에 붙는 랜덤 해시값이 바뀌더라도 요소를 안정적으로 찾을 수 있습니다.
 
 ---
+### **[Mission 4] 첫 데이터 추출 (재도전)**
 
-### **[Mission 4] 첫 데이터 추출**
+이제 수정된 코드로 다시 미션을 수행해 주십시오.
 
-신호용 님의 네 번째 미션입니다.
+> 1.  `.gitignore` 파일을 생성하고 내용을 채워주십시오.
+> 2.  `main.py`를 위 코드로 수정한 뒤, 터미널에서 `python main.py`를 실행하십시오.
+> 3.  **예상 결과:** 터미널에 **"총 N개의 채용 공고를 찾았습니다."** 라는 개수와 함께, **"첫 번째 공고 제목:"** 과 **"첫 번째 공고 회사명:"** 이 정확하게 출력되는지 확인하십시오.
 
-> 1.  `beautifulsoup4`와 `lxml`을 설치하십시오.
-> 2.  `main.py`를 위 코드와 같이 수정하고, 터미널에서 `python main.py`를 실행하십시오.
-> 3.  **예상 결과:** 이전과 동일하게 브라우저가 자동으로 동작하여 스크롤까지 완료한 뒤, 터미널에 **"총 N개의 채용 공고를 찾았습니다."** 와 같이, 현재 페이지에 로드된 채용 공고의 총개수가 정확하게 출력되는지 확인하십시오.
+이 미션이 성공하면, 우리는 드디어 원석에서 보석을 꺼내는 데 성공한 것입니다. 성공 여부를 알려주세요.

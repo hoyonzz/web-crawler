@@ -7,7 +7,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 # 키보드 입력을 위해 사용할 keys 모듈
 from selenium.webdriver.common.keys import Keys
-
+from bs4 import BeautifulSoup
 
 
 # 1. WebDriver 설정
@@ -41,8 +41,30 @@ while True:
     last_height = new_height
 
 print('페이지 스크롤이 완료되었습니다.')
-time.sleep(5)
 
-driver.quit()
+# 6. HTML 파싱하여 정보 추출하기
+html = driver.page_source
 
-print('Selenium 실행이 완료되었습니다.')
+soup = BeautifulSoup(html, 'lxml')
+
+job_cards = soup.select("div[role='listitem'] a")
+
+print(f"총{len(job_cards)}개의 채용 공고를 찾았습니다.")
+
+# 미리보기_ 첫번째 공고의 제목과 회사명 추출하기
+if len(job_cards) > 0:
+    first_card = job_cards[0]
+    
+    # strong 태그이면서 class 이름이 'JobCard_title'로 시작하는 요소 찾기
+    title = first_card.select_one("strong[class*='JobCard_title']").text
+    # span 태그이면서 class 이름이 'CompanyName'으로 시작하는 요소 찾기
+    company_name = first_card.select_one("span[class*='CompanyName']").text
+    
+    print(f"첫 번째 공고_제목: {title}")
+    print(f"첫 번째 공고_회사명: {company_name}") 
+    
+    # 브라우저 닫기
+    driver.quit()
+    
+    print("Selenium 실행이 완료되었습니다.") 
+    
