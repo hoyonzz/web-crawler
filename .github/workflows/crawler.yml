@@ -1,44 +1,42 @@
 # crawler.yml
 
-# 워크 플로우 이름
-name: Wanted Job Crawler 
+name: Wanted Job Crawler
 
-# 언제 실행할 것인가
 on:
   schedule:
-    # 매일 UTC 기준 20시에 실행(한국 시간 새벽 5시)
-    - cron: '0 20 * * *' 
-    # push 할 때 테스트 용도로 실행하는 버튼
+    # 매일 UTC 기준 20시에 실행 (한국 시간 새벽 5시)
+    - cron: '0 20 * * *'
+  
+  # 수동 실행 버튼
   workflow_dispatch:
+
+  # main 브랜치에 push 시 실행
   push:
     branches: [ main ]
 
-# 어떤 작업들을 실행할 것인가
 jobs:
   build:
-    # 우분투 리눅스 환경에서 실행
     runs-on: ubuntu-latest
-
-    # 앞으로 실행될 모든 run 명령어의 기본 작업 디렉토리 설정
+    
+    # 이 job의 모든 run 명령어는 web-crowler 폴더 안에서 실행됩니다.
     defaults:
       run:
-        working-directory:./web-crowler
+        working-directory: ./web-crowler
 
-    # 어떤 단계들을 순서대로 실행할 것인가
     steps:
-      - name: Checkout repository # 1. 내 코드 내려받기
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Python # 2. 파이썬 설치
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
       
-      - name: Install dependencies # 3. 라이브러리 설치
+      - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run crawler # 4. 크롤러 실행
+      - name: Run crawler
         run: python main.py
-        env: # 실행 시 사용할 환경 변수 설정
+        env:
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
