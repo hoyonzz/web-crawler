@@ -11,7 +11,7 @@ on:
     # push 할 때 테스트 용도로 실행하는 버튼
     workflow_dispatch:
     push:
-      branches: [main]
+      branches: [ main ]
 
 # 어떤 작업들을 실행할 것인가
 jobs:
