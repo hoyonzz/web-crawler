@@ -8,6 +8,10 @@ on:
   schedule:
     # 매일 UTC 기준 20시에 실행(한국 시간 새벽 5시)
     - cron: '0 20 * * *' 
+    # push 할 때 테스트 용도로 실행하는 버튼
+    workflow_dispatch:
+    push:
+      branches: [main]
 
 # 어떤 작업들을 실행할 것인가
 jobs:
