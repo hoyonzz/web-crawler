@@ -2,28 +2,28 @@
 
 # 워크 플로우 이름
 name: Wanted Job Crawler 
-  # 언제 실행할 것인가
-  on:
-    schedule:
-      - cron: '0 20 * * *' # 매일 UTC 기준 20시에 실행(한국 시간 새벽 5시)
-  # 어떤 작업들을 실행할 것인가
-  jobs:
-    build:
-      runs-on: ubuntu-latest # 우분투 리눅스 환경에서 실행
-      # 어떤 단계들을 순서대로 실행할 것인가
-      - name: Checkout repository # 1. 내 코드 내려받기
-        uses: actions/checkout@v3
+# 언제 실행할 것인가
+on:
+  schedule:
+    - cron: '0 20 * * *' # 매일 UTC 기준 20시에 실행(한국 시간 새벽 5시)
+# 어떤 작업들을 실행할 것인가
+jobs:
+  build:
+    runs-on: ubuntu-latest # 우분투 리눅스 환경에서 실행
+    # 어떤 단계들을 순서대로 실행할 것인가
+    - name: Checkout repository # 1. 내 코드 내려받기
+      uses: actions/checkout@v3
 
-      - name: Set up Python # 2. 파이썬 설치
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12'
-      
-      - name: Install dependencies # 3. 라이브러리 설치
-        run: pip install -r requirements.txt
+    - name: Set up Python # 2. 파이썬 설치
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    
+    - name: Install dependencies # 3. 라이브러리 설치
+      run: pip install -r requirements.txt
 
-      - name: Run crawler # 4. 크롤러 실행
-        run: python main.py
-        env: # 실행 시 사용할 환경 변수 설정
-          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
-          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+    - name: Run crawler # 4. 크롤러 실행
+      run: python main.py
+      env: # 실행 시 사용할 환경 변수 설정
+        NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+        NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
