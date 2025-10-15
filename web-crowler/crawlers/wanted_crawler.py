@@ -25,7 +25,7 @@ class WantedCrawler(BaseCrawler):
 
         search_input = self.driver.find_element(By.CSS_SELECTOR, 'input.SearchInput_SearchInput__R6jwT')
         search_input.send_keys(keyword)
-        search_input.send_keys(Keys.Enter)
+        search_input.send_keys(Keys.ENTER)
         time.sleep(2)
 
         last_height = self.driver.execute_script('return document.body.scrollHeight')

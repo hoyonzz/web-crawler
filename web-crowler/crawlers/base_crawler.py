@@ -11,7 +11,7 @@ class BaseCrawler(ABC):
 
     def __init__(self, base_url):
         self.base_url = base_url
-        self.driver = self.setup_driver()
+        self.driver = self._setup_driver()
 
     def _setup_driver(self):
         # Selenium WebDriver를 설정하고 반환
