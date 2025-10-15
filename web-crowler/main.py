@@ -30,6 +30,10 @@ notion = notion_client.Client(auth=NOTION_API_KEY)
 chrome_options=Options()
 # 헤드리스 모드를 활성화하는 옵션 추가
 chrome_options.add_argument("--headless")
+
+# User-Agent 설정 코드 추가
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+chrome_options.add_argument(f"user-agent={user_agent}")
 # 일부 서버 환경에서 필요한 추가 옵션
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
