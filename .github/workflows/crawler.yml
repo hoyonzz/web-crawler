@@ -43,9 +43,9 @@ jobs:
       
       - name: Upload Artifacts on failure # 실패시 결과물 업로드
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: error-artifacts
           path: |
-            ./web-crower/error_screenshot.png
-            ./web-crower/error_page.html
+            web-crowler/error_screenshot.png
+            web-crowler/error_page.html
