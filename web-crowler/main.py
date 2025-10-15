@@ -2,6 +2,7 @@ import time
 import os
 from dotenv import load_dotenv
 
+from selenium.webdriver.chrome.options import Options
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
@@ -24,9 +25,17 @@ NOTION_DATABASE_ID = os.environ.get("NOTION_DATABASE_ID")
 # Notion 클라이언트 초기화
 notion = notion_client.Client(auth=NOTION_API_KEY)
 
+# Chrome 옵션을 설정하기 위한 Options 객체 생성
+chrome_options=Options()
+# 헤드리스 모드를 활성화하는 옵션 추가
+chrome_options.add_argument("--headless")
+# 일부 서버 환경에서 필요한 추가 옵션
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+
 # 2. Selenium 설정 및 실행
 service = ChromeService(executable_path=ChromeDriverManager().install())
-driver = webdriver.Chrome(service=service)
+driver = webdriver.Chrome(service=service, options=chrome_options)
 
 # 원티드 메인 페이지로 이동
 URL = 'https://www.wanted.co.kr/'
