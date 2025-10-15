@@ -2,6 +2,7 @@ import time
 import os
 from dotenv import load_dotenv
 
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.chrome.options import Options
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
@@ -43,9 +44,17 @@ driver.get(URL)
 time.sleep(2)
 
 # 검색창 활성화를 위해 돋보기 아이콘 클릭
-search_button = driver.find_element(By.CSS_SELECTOR, "button[data-attribute-id='gnb']")
-search_button.click()
-time.sleep(1)
+try:
+    search_button = driver.find_element(By.CSS_SELECTOR, "button[data-attribute-id='gnb']")
+    search_button.click()
+    time.sleep(1)
+except NoSuchElementException as e:
+    # 에러 발생 시, 현재 화면을 스크린샷으로 저장하고 HTML을 저장
+    driver.save_screenshot("error_screenshot.png")
+    with open("error_page.html", "w", encoding='utf-8') as f:
+        f.write(driver.page_source)
+    print("오류: 검색 버튼을 찾을 수 없습니다. 스크린샷과 HTML을 저장합니다.")
+    raise e # 원래 오류를 다시 발생시켜서 워크플로우를 중단시킴
 
 # 검색창에 '백엔드' 입력
 search_input = driver.find_element(By.CSS_SELECTOR, 'input.SearchInput_SearchInput__R6jwT')
