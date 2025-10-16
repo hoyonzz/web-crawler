@@ -35,16 +35,37 @@ for crawler in crawlers_to_run:
 print(f"총 {len(all_jobs)}개의 채용 공고를 찾았습니다. Notion에 저장을 시작합니다...")
 
 collection_date = datetime.now().strftime("%Y-%m-%d")
-
 success_count = 0
+duplicate_count = 0
+
+# 쿼리 조회 기능
 for i, job in enumerate(all_jobs):
-    title = job['title']
-    company = job['company']
     link = job['link']
+    title = job['title']
+
+    # 1. 링크를 기준으로 쿼리 조회
+    try:
+        response = notion.databases.query(
+            database_id=NOTION_DATABASE_ID,
+            filter = {"property": "링크", "url": {"equals": link}}
+        )
+
+        # 2. 쿼리 결과에 데이터가 있는지 확인
+        if len(response['results']) > 0:
+            # 이미 존재하는 데이터
+            print(f" [{i+1}/{len(all_jobs)}] [중복] {title}")
+            duplicate_count += 1
+            continue
+
+    except Exception as e:
+        print(f" [오류 발생] Notion DB 조회 중 문제 발생: {e}")
+        continue
+
+    # 중복이 아닐 경우
+    print(f" [{i+1}/{len(all_jobs)}] [신규] {title} -> Notion에 저장 시도")
+    company = job['company']
     source = job['source']
 
-    # 보낼 데이터 구조 미리 출력(디버깅용)
-    print(f" [{i+1}/{len(all_jobs)}] Notion에 저장 시도: {title} @ {company}")
 
     try:
         # Notion API 호출
@@ -75,5 +96,7 @@ for i, job in enumerate(all_jobs):
         print(f' 오류원인: {e}')
 
 print("-" * 20)
-print(f"총{len(all_jobs)}개의 공고 중, {success_count}개를 Notion에 성공적으로 저장했습니다.")
-print('모든 작업이 완료되었습니다.')
+print(f"총 {len(all_jobs)}개의 공고 중,")
+print(f"  - {success_count}개의 새로운 공고를 Notion에 저장했습니다.")
+print(f"  - {duplicate_count}개의 공고는 이미 존재하여 건너뛰었습니다.")
+print("모든 작업이 완료되었습니다.")

@@ -31,8 +31,8 @@ class JobKoreaCrawler(BaseCrawler):
                 # 2. 제목을 감싸고 있는 부모 a 태그 추출
                 link_tag = title_span.find_parent('a')
                 # .find_parent('a')는 해당 요소의 부모 중 가장 가까운 a 태그를 찾는다
-                relative_link = link_tag['href']
-                link = self.base_url + relative_link
+                link = link_tag['href']
+                # link = self.base_url + relative_link
 
                 # 3. 회사명(size16)을 포함하는 span태그
                 company_span = card.select_one('span[class*="Typography_variant_size16"]')
