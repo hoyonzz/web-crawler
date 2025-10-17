@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import notion_client
 from crawlers.wanted_crawler import WantedCrawler
 from crawlers.jobkorea_crawler import JobKoreaCrawler
+from crawlers.saramin_crawler import SaraminCrawler
 
 load_dotenv()
 
@@ -17,7 +18,8 @@ all_jobs = []
 
 crawlers_to_run = [
     WantedCrawler(),
-    JobKoreaCrawler()
+    JobKoreaCrawler(),
+    SaraminCrawler()
 ]
 
 for crawler in crawlers_to_run:
