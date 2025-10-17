@@ -26,7 +26,7 @@ class BaseCrawler(ABC):
         return driver
     
     @abstractmethod
-    def crawl(self, keyword: str):
+    def crawl(self, keyword: str, pages_to_crawl: int = 1):
         # 크롤링 프로세스를 시작하는 메인 메서드(자식 클래스에서 반드시 구현)
         # 반환 값은 dict를 담은 list 형태
         pass

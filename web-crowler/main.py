@@ -23,7 +23,8 @@ crawlers_to_run = [
 for crawler in crawlers_to_run:
     try:
         print(f"--- {type(crawler).__name__} 크롤링 시작 ---")
-        crawled_jobs = crawler.crawl(keyword='백엔드')
+        # crawl 메서드에 pages_to_crawl 인자를 전달, 테스트는 2, 실제 운영시에는 5~10으로 셋팅
+        crawled_jobs = crawler.crawl(keyword='백엔드', pages_to_crawl=2)
         all_jobs.extend(crawled_jobs)
         print(f"--- {type(crawler).__name__} 크롤링 완료 ---")
     except Exception as e:
