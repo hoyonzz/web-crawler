@@ -6,6 +6,11 @@ from crawlers.wanted_crawler import WantedCrawler
 from crawlers.jobkorea_crawler import JobKoreaCrawler
 from crawlers.saramin_crawler import SaraminCrawler
 
+
+from analysis.gemini_analyzer import analye_job_posting
+
+
+
 load_dotenv()
 
 # 1. Notion API 설정
@@ -65,7 +70,20 @@ for i, job in enumerate(all_jobs):
         continue
 
     # 중복이 아닐 경우
-    print(f" [{i+1}/{len(all_jobs)}] [신규] {title} -> Notion에 저장 시도")
+    print(f" [{i+1}/{len(all_jobs)}] [신규] {title} -> 상세 정보 수집 및 분석 시작")
+
+    # ToDo 상세 페이지에 접속해서 공고 본문 텍스트를 가져와야함, 임시 데이터로 테스트
+    job_description = "임시 텍스트: 이 포지션은 Python과 DJango를 이용해 멋집 웹서비스를 만듭니다."
+
+    # Gemini 분석기 호출
+    analysis_result = analye_job_posting(job_description)
+
+    # 분석 결과 출력(Notion에 저장할 변수 담기)
+    print("--- Gemini 분석 결과 ---")
+    print(analysis_result)
+    print("------------------------")
+
+    
     company = job['company']
     source = job['source']
 
