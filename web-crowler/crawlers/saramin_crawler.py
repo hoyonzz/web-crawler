@@ -16,7 +16,7 @@ class SaraminCrawler(BaseCrawler):
         for page in range(1, pages_to_crawl+1):
             search_url = f"{self.base_url}/zf_user/search?searchword={keyword}&recruitPage={page}"
             self.driver.get(search_url)
-            time.sleep(3)
+            self._random_sleep()
 
             print(f" - {page} 페이지 처리 중...")
             soup = BeautifulSoup(self.driver.page_source, 'lxml')

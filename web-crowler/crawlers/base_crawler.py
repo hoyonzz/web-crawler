@@ -4,14 +4,24 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 
+import time
+import random
+
 
 
 class BaseCrawler(ABC):
     # 모든 크롤러가 상속받아야 하는 추상 기본 클래스
 
-    def __init__(self, base_url):
+    def __init__(self, base_url, delay_range=(2, 5)):
         self.base_url = base_url
+        self.delay_range = delay_range
         self.driver = self._setup_driver()
+
+    def _random_sleep(self):
+        # 설정된 딜레이 범위 내에서 랜덤한 시간만큼 대기
+        delay = random.uniform(self.delay_range[0], self.delay_range[1])
+
+        time.sleep(delay)
 
     def _setup_driver(self):
         # Selenium WebDriver를 설정하고 반환

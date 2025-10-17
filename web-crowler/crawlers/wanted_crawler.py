@@ -20,7 +20,7 @@ class WantedCrawler(BaseCrawler):
         # 포지션 탭의 URL로 바로 접근하여 불필요한 클릭 과정 생략
         target_url = f"{self.base_url}/search?query={keyword}&tab=position"
         self.driver.get(target_url)
-        time.sleep(3)
+        self._random_sleep()
 
         # 무한 스크롤로 데이터 수집
         print(" - 무한 스크롤을 시작합니다.")
@@ -37,7 +37,7 @@ class WantedCrawler(BaseCrawler):
 
 
             # self.driver.execute_script('window.scrollTo(0, document.documentElement.scrollHeight);')
-            time.sleep(3)
+            self._random_sleep()
             new_height = self.driver.execute_script('return document.documentElement.scrollHeight')
 
             if new_height == last_height:

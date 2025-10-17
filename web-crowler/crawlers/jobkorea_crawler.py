@@ -21,7 +21,7 @@ class JobKoreaCrawler(BaseCrawler):
             # URL에 페이지 번호 추가    
             search_url = f"{self.base_url}/Search/?stext={keyword}&Page)No={page}"
             self.driver.get(search_url)
-            time.sleep(3) # 페이지 로딩 대기
+            self._random_sleep()
 
             print(f"   - {page} 페이지 처리 중...")
             soup = BeautifulSoup(self.driver.page_source, 'lxml')
