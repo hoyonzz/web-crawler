@@ -9,7 +9,8 @@ class SaraminCrawler(BaseCrawler):
     def __init__(self):
         super().__init__("https://www.saramin.co.kr")
     
-    def crawl(self, keyword: str = '백엔드', pages_to_crawl: int = 1):
+    def crawl(self, keyword: str = '백엔드', pages_to_crawl: int = 1, sort_by: str = 'latest'):
+        # 사람인은 URL 파라미터 정렬이 복잡하므로, sort_by 인자 사용하지 않지만, 함수 모양을 다른 크롤러와 통일
         print(f"사람인에서 '{keyword}' 키워드로 {pages_to_crawl} 페이지까지 크롤링을 시작합니다.")
         all_job_data = []
 

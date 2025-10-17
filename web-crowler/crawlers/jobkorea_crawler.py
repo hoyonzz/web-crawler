@@ -10,16 +10,17 @@ class JobKoreaCrawler(BaseCrawler):
     def __init__(self):
         super().__init__("https://www.jobkorea.co.kr")
 
-    def crawl(self, keyword: str = '백엔드', pages_to_crawl: int = 3):
+    def crawl(self, keyword: str = '백엔드', pages_to_crawl: int = 1, sort_by: str = 'latest'):
         # 잡코리아에서 주어진 키워드로 채용 정보를 크롤링
+        order_by_code = '2' if sort_by == 'latest' else '1' 
 
-        print(f"잡코리아에서 '{keyword}' 키워드로 {pages_to_crawl} 페이지까지 크롤링을 시작합니다.")
+        print(f"잡코리아에서 '{keyword}' 키워드로 '{sort_by}' 순으로 '{pages_to_crawl}' 페이지까지 크롤링을 시작합니다.")
         # 주어진 키워드로 지정된 페이지 수만큼 채용 정보 크롤링
         all_job_data = []
         # 1부터 pages_to_crawl 숫자까지 루프
         for page in range(1, pages_to_crawl + 1):
             # URL에 페이지 번호 추가    
-            search_url = f"{self.base_url}/Search/?stext={keyword}&Page)No={page}"
+            search_url = f"{self.base_url}/Search/?stext={keyword}&Page_No={page}&orderBy={order_by_code}"
             self.driver.get(search_url)
             self._random_sleep()
 

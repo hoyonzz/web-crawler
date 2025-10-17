@@ -13,12 +13,14 @@ class WantedCrawler(BaseCrawler):
         # 부모 클래스 __init__을 호출하여 base_url 전달
         super().__init__("https://www.wanted.co.kr/")
 
-    def crawl(self, keyword: str = "백엔드", pages_to_crawl: int = 1):
+    def crawl(self, keyword: str = "백엔드", pages_to_crawl: int = 1, sort_by: str = 'latest'):
         # BaseCrawler의 의무 조항을 실제로 구현, 원티드 채용 정보 크롤링하여 list of dict 형태로 반환
-        print(f"원티드에서 '{keyword}' 키워드로 크롤링을 시작합니다...")
+        order_param = 'latest' if sort_by == 'latest' else 'score'
+
+        print(f"원티드에서 '{keyword}' 키워드로 '{sort_by}' 순으로 크롤링을 시작합니다...")
 
         # 포지션 탭의 URL로 바로 접근하여 불필요한 클릭 과정 생략
-        target_url = f"{self.base_url}/search?query={keyword}&tab=position"
+        target_url = f"{self.base_url}/search?query={keyword}&tab=position&order={order_param}"
         self.driver.get(target_url)
         self._random_sleep()
 
