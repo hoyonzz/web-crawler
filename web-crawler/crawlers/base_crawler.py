@@ -7,6 +7,7 @@ from selenium.webdriver.chrome.options import Options
 import time
 import random
 
+from typing import Dict
 
 
 class BaseCrawler(ABC):
@@ -36,13 +37,14 @@ class BaseCrawler(ABC):
         return driver
     
     @abstractmethod
-    def crawl(self, keyword: str, pages_to_crawl: int = 1, sort_by: str = 'latest'):
+    def crawl(self, keyword: str, pages_to_crawl: int = 1, is_newbie: bool = False):
         # 크롤링 프로세스를 시작하는 메인 메서드(자식 클래스에서 반드시 구현)
         # 반환 값은 dict를 담은 list 형태
         pass
 
     @abstractmethod
-    def get_job_description(self, url:str) -> str:
+    def get_job_description(self, url:str) -> Dict[str, str]:
+        # 반환 타입을 본문과 마감일을 모두 담을 수 있는 Dict로 변경
         # 주어진 URL의 상세 페이지에 방문하여, 채용 공고의 본문 텍스트 반환
         # 자식 클래스는 이 메서드를 반드시 구현
         pass
