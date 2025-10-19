@@ -1,4 +1,4 @@
-import os
+import os, json
 from datetime import datetime
 from dotenv import load_dotenv
 import notion_client
@@ -9,7 +9,6 @@ from crawlers.jobkorea_crawler import JobKoreaCrawler
 from crawlers.saramin_crawler import SaraminCrawler
 
 from analysis.gemini_analyzer import analyze_job_posting
-
 
 
 load_dotenv()
@@ -91,43 +90,50 @@ for i, job in enumerate(all_jobs):
 
     # ToDo 상세 페이지에 접속해서 공고 본문 텍스트를 가져와야함
     job_description = job.get('description', "")
-    analysis_result_text = None # 분석 결과를 담을 변수 초기화
+    analysis_result = None # 분석 결과를 담을 변수 초기화
 
     if job_description:
-        analysis_result_text = analyze_job_posting(job_description)
-        print("--- Gemini 분석 결과 ---")
-        print(analysis_result_text) 
-        print("------------------------")
+        analysis_result = analyze_job_posting(job_description)
+        if analysis_result:
+            print("--- Gemini 분석 완료 ---")
+        else:
+            print("--- Gemini 분석 실패 ---")
     else:
         print("   - 본문 내용이 없어 Gemini 분석을 건너뜁니다.")
-
     
     company = job['company']
     source = job['source']
 
+    # properties 딕셔너리를 동적으로 구성
+    properties_to_save = {
+        '직무': {
+            'title': [{'text': {'content': title}}]
+            },
+        '회사명': {
+            'rich_text': [{'text': {'content': company}}]
+            },
+        '링크': {
+            'url': link
+            },
+        '출처':{'rich_text': [{'text': {'content': source }}]
+            },
+        '수집일': {
+            'date': {'start': collection_date}
+        },
+    }
 
+    # Gemini 분석 결과가 있을 경우, 해당 속성들을 추가
+    if analysis_result:
+        summary = analysis_result.get('summary', '요약 정보 없음')
+        required_skills = analysis_result.get('required_skills', [])
+        properties_to_save['AI 요약'] = {'rich_text': [{text': {'content': summary}}]}
+        if required_skills:
+            properties_to_save['핵심 기술'] = {'multi_select': [{'name': skill} for skill in required_skills[:100]]}
+    
     try:
-        # Notion API 호출
         notion.pages.create(
-            parent={"database_id":NOTION_DATABASE_ID},
-            properties={
-                '직무':{
-                    'title':[{'text':{'content':title}}]
-                },
-                '회사명':{
-                    'rich_text': [{'text': {'content':company}}]
-                },
-                '링크':{
-                    'url':link
-                },
-                '출처':{
-                    'rich_text':[{'text':{'content':source}}]
-                },
-                '수집일':{
-                    'date':{'start': collection_date}
-                }
-            }
-        )
+            parent={"database_id": NOTION_DATABASE_ID},
+            properties=properties_to_save
         success_count += 1
 
     except Exception as e:

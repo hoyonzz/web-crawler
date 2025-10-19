@@ -71,15 +71,41 @@ class WantedCrawler(BaseCrawler):
         return job_data
     
     def get_job_description(self, url: str) -> str:
-        # 원티드의 상세 페이지의 본문 내용 수집
+        # 원티드의 상세 페이지의 본문 내용 수집:상세페이지에 방문, '더보기'버튼 클릭, 전체 본문 내용 수집
+
         try:
             self.driver.get(url)
             self._random_sleep()
+
+            # 1. 페이지 펼치는 버튼 클릭 로직
+            try:
+                more_button_xpath = "//button[span[text()='상세 정보 더 보기']]"
+                more_button = self.driver.find_element(By.XPATH, more_button_xpath)
+
+                self.driver.execute_script("arguments[0].click();", more_button)
+                print("   -> '상세 정보 더 보기' 버튼을 클릭했습니다.")
+                self._random_sleep()
+            except Exception:
+                print("   -> '상세 정보 더 보기' 버튼이 없거나 클릭할 수 없습니다. 그대로 진행합니다.")
+                pass
+
+
             soup = BeautifulSoup(self.driver.page_source, 'lxml')
 
-            content_div = soup.select_one('div[data-cy="job-detail-position-content"]')
-            return content_div.text.strip() if content_div else ""
+            # 2. 전체 본문을 감싸는 article 태그 찾기
+            content_article = soup.select_one('article[class*="JobDescription_JobDescription"]')
+
+            if content_article:
+                return content_article.text.strip()
+            else:
+                print("   -> [경고] 기본 선택자로 본문을 찾지 못했습니다. 2차 선택자를 시도합니다.")
+
+                # h2 태그 중 '포지션 상세'라는 텍스트를 가진 요소의 부모를 찾는다
+                h2 = soup.find('h2', string='포지션 상세')
+                if h2:
+                    return h2.parent.text.strip()
+                return ""
         except Exception as e:
             print(f" [상세 정보 수집 오류] {url} 처리 중 문제 발생: {e}")
             return ""
-        return super().get_job_description(url)
+ 

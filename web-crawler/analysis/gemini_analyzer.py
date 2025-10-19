@@ -1,5 +1,12 @@
 import os
+import json
 import google.generativeai as genai
+
+from dotenv import load_dotenv
+
+
+dotenv_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+load_dotenv(dotenv_path=dotenv_path)
 
 
 
@@ -7,12 +14,16 @@ import google.generativeai as genai
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 
+# for m in genai.list_models():
+#     if "generateContent" in m.supported_generation_methods:
+#         print(m.name)
+
 # 사용할 Gemini 모델 설정
-model = genai.GenerativeModel('gemini-pro')
+model = genai.GenerativeModel('gemini-2.5-flash')
 
 def analyze_job_posting(job_description: str):
     # 채용공고 내용을 Gemini API를 이용해 분석하고, 핵심 기술 스택과 요약 내용 추출
-    if not job_description:
+    if not job_description or not GEMINI_API_KEY:
         return None
     
     # AI에게 보낼 프롬프트(명령어)
@@ -32,7 +43,12 @@ def analyze_job_posting(job_description: str):
 
     try:
         response = model.generate_content(prompt)
-        # TODO : Gemini의 응답(response.text)을 파싱하여 JSON 객체로 변환하는 로직추가, 우선은 원본 텍스트 그대로 반환
-        return response.text
-    except Exception as e:
-        print(f" [Gemini 오류] API 호출 중 문제: {e}")
+        # Gemini 응답 텍스트 파싱
+        cleaned_text = response.text.strip().replace("'''json","").replace("'''","")
+        return json.loads(cleaned_text)
+    
+    except (json.JSONDecodeError, Exception) as e:
+        print(f" [Gemini 오류] 응답 파싱 중 문제 발생: {e}")
+        print(f" 원본 응답: {response.text}")
+        return None
+
