@@ -1,0 +1,94 @@
+# 1순위: 핵심 역량
+core_skills:
+  weight: 3.0
+  keywords:
+    - python
+    - django
+    - postgresql
+    - postgres
+    - mysql
+    - aws
+    - lightsail
+
+# 2순위: 백엔드 일반, 포트폴리오 관련
+general_backend:
+  weight: 2.5
+  keywords:
+    - 백엔드
+    - backend
+    - server
+    - api
+    - 서버
+    - flask
+    - fastapi
+    - rest
+    - restful
+    - rest api
+    - api 개발
+    - celery
+    - django rest framework
+    - drf
+
+# 3순위: 성장 목표, 확장 역량
+growth_potential:
+  weight: 2.0
+  keywords:
+    - ai
+    - llm
+    - 대규모 언어 모델
+    - chatgpt
+    - gpt
+    - 데이터 엔지니어
+    - data engineer
+    - 데이터 파이프라인
+    - etl
+    - 데이터 처리
+    - oauth
+    - jwt
+    - 소셜 로그인
+    - 인증
+    - authentication
+
+# 4순위: DevOps, 테스트
+devops_infra:
+  weight: 1.5
+  keywords:
+    - git
+    - github
+    - gitlab
+    - docker
+    - kubernetes
+    - k8s
+    - nginx
+    - gunicorn
+    - uwsgi
+    - ec2
+    - rds
+    - s3
+    - lambda
+    - redis
+    - rabbitmq
+    - kafka
+    - pytest
+    - unittest
+    - 단위테스트
+    - 테스트
+    - test
+    - tdd
+
+# 제외 키워드 (가중치 없음)
+exclude:
+  - 프론트엔드
+  - frontend
+  - react
+  - vue
+  - angular
+  - ui
+  - ux
+  - 디자인
+  - ios
+  - android
+  - flutter
+  - 게임
+  - unity
+  - unreal

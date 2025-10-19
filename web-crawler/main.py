@@ -8,6 +8,8 @@ from crawlers.wanted_crawler import WantedCrawler
 from crawlers.jobkorea_crawler import JobKoreaCrawler
 from crawlers.saramin_crawler import SaraminCrawler
 
+from data_processor.personalized_job_filter import PersonalizedJobFilter
+
 from analysis.gemini_analyzer import analyze_job_posting
 
 
@@ -61,6 +63,8 @@ collection_date = datetime.now().strftime("%Y-%m-%d")
 success_count = 0
 duplicate_count = 0
 
+job_filter = PersonalizedJobFilter()
+
 # 쿼리 조회 기능
 for i, job in enumerate(all_jobs):
     link = job['link']
@@ -85,12 +89,20 @@ for i, job in enumerate(all_jobs):
         continue
 
     # 중복이 아닐 경우
-    print(f" [{i+1}/{len(all_jobs)}] [신규] {title} -> Gemini 분석 시작...")
+    title = job.get('title', "")
+    description = job.get('description', "")
+
+    is_relevant, score = job_filter.calculate_relevance_score(title, description)
+
+    if not is_relevant:
+        print(f" [{i+1}/{len(all_jobs)}] [필터링됨] '{title}' (점수:{score})")
+        continue
+    print(f"  [{i+1}/{len(all_jobs)}] [통과] '{title}' (점수: {score}) -> Gemini 분석 시작...")
 
 
     # ToDo 상세 페이지에 접속해서 공고 본문 텍스트를 가져와야함
     job_description = job.get('description', "")
-    analysis_result = None # 분석 결과를 담을 변수 초기화
+    analysis_result = analyze_job_posting(description) # 분석 결과를 담을 변수 초기화
 
     if job_description:
         analysis_result = analyze_job_posting(job_description)
