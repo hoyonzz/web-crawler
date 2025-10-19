@@ -41,6 +41,12 @@ class BaseCrawler(ABC):
         # 반환 값은 dict를 담은 list 형태
         pass
 
+    @abstractmethod
+    def get_job_description(self, url:str) -> str:
+        # 주어진 URL의 상세 페이지에 방문하여, 채용 공고의 본문 텍스트 반환
+        # 자식 클래스는 이 메서드를 반드시 구현
+        pass
+
     def close_driver(self):
         # 드라이버를 안전하게 종료
         if self.driver:

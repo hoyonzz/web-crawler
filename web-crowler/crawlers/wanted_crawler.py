@@ -69,3 +69,17 @@ class WantedCrawler(BaseCrawler):
                 continue
         print(f"원티드에서 총 {len(job_data)}개의 공고를 찾았습니다.")
         return job_data
+    
+    def get_job_description(self, url: str) -> str:
+        # 원티드의 상세 페이지의 본문 내용 수집
+        try:
+            self.driver.get(url)
+            self._random_sleep()
+            soup = BeautifulSoup(self.driver.page_source, 'lxml')
+
+            content_div = soup.select_one('div[data-cy="job-detail-position-content"]')
+            return content_div.text.strip() if content_div else ""
+        except Exception as e:
+            print(f" [상세 정보 수집 오류] {url} 처리 중 문제 발생: {e}")
+            return ""
+        return super().get_job_description(url)

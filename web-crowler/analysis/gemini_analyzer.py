@@ -10,7 +10,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 # 사용할 Gemini 모델 설정
 model = genai.GenerativeModel('gemini-pro')
 
-def analye_job_posting(job_description: str):
+def analyze_job_posting(job_description: str):
     # 채용공고 내용을 Gemini API를 이용해 분석하고, 핵심 기술 스택과 요약 내용 추출
     if not job_description:
         return None

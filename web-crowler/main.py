@@ -2,12 +2,13 @@ import os
 from datetime import datetime
 from dotenv import load_dotenv
 import notion_client
+
+
 from crawlers.wanted_crawler import WantedCrawler
 from crawlers.jobkorea_crawler import JobKoreaCrawler
 from crawlers.saramin_crawler import SaraminCrawler
 
-
-from analysis.gemini_analyzer import analye_job_posting
+from analysis.gemini_analyzer import analyze_job_posting
 
 
 
@@ -20,27 +21,42 @@ notion = notion_client.Client(auth=NOTION_API_KEY)
 
 # 2. 크롤러 실행
 all_jobs = []
+# 클래스 자체를 리스트에 담아, 필요할 때 객체를 생성하는 방식으로 변경
 
-crawlers_to_run = [
-    WantedCrawler(),
-    JobKoreaCrawler(),
-    SaraminCrawler()
-]
+# crawlers_to_run = [WantedCrawler, JobKoreaCrawler, SaraminCrawler]
+crawlers_to_run = [WantedCrawler] # 테스트를 위해 임시
 
-for crawler in crawlers_to_run:
+
+for crawlerClass in crawlers_to_run:
+    crawler = crawlerClass()
+    crawler_name = type(crawler).__name__
+    print(f"--- {crawler_name} 크롤링 시작 ---")
+
     try:
-        print(f"--- {type(crawler).__name__} 크롤링 시작 ---")
-        # crawl 메서드에 pages_to_crawl 인자를 전달, 테스트는 2, 실제 운영시에는 5~10으로 셋팅
-        crawled_jobs = crawler.crawl(keyword='백엔드', pages_to_crawl=2, sort_by='latest')
-        all_jobs.extend(crawled_jobs)
-        print(f"--- {type(crawler).__name__} 크롤링 완료 ---")
+        # 1단계: 목록 페이지에서 기본 정보 수집
+        crawled_jobs_full_list = crawler.crawl(keyword='백엔드')
+
+        # 2단계: 각 공고의 상세 페이지에 방문하여 본문 수집 - 테스트 범위를 3개로 제한
+        jobs_to_process=crawled_jobs_full_list[:3]
+        print(f"   -> {len(crawled_jobs_full_list)}개 중 {len(jobs_to_process)}개만 테스트를 진행...")
+        
+        print(f"   -> 상세 정보 수집을 시작합니다...")
+        for i, job in enumerate(jobs_to_process):
+            job_link = job['link']
+            print(f"   ({i+1}/{len(jobs_to_process)}) {job_link[:50]}...") # 링크 앞부분만 출력
+            job['description'] = crawler.get_job_description(job_link)
+
+        all_jobs.extend(jobs_to_process)
+        print(f"--- {crawler_name} 크롤링 완료")
+    
     except Exception as e:
-        print(f"{type(crawler).__name__} 실행 중 오류 발생: {e}")
+        print(f" [전체 크롤러 오류] {crawler_name} 실행 중 문제 발생:{e}")
+
     finally:
         crawler.close_driver()
 
-# 3. Notion에 저장
-print(f"총 {len(all_jobs)}개의 채용 공고를 찾았습니다. Notion에 저장을 시작합니다...")
+# 3. Notion에 저장 및 Gemini 분석
+print(f"총 {len(all_jobs)}개의 채용 공고를 찾았습니다. Notion DB와 비교 및 분석을 시작합니다...")
 
 collection_date = datetime.now().strftime("%Y-%m-%d")
 success_count = 0
@@ -70,18 +86,20 @@ for i, job in enumerate(all_jobs):
         continue
 
     # 중복이 아닐 경우
-    print(f" [{i+1}/{len(all_jobs)}] [신규] {title} -> 상세 정보 수집 및 분석 시작")
+    print(f" [{i+1}/{len(all_jobs)}] [신규] {title} -> Gemini 분석 시작...")
 
-    # ToDo 상세 페이지에 접속해서 공고 본문 텍스트를 가져와야함, 임시 데이터로 테스트
-    job_description = "임시 텍스트: 이 포지션은 Python과 DJango를 이용해 멋집 웹서비스를 만듭니다."
 
-    # Gemini 분석기 호출
-    analysis_result = analye_job_posting(job_description)
+    # ToDo 상세 페이지에 접속해서 공고 본문 텍스트를 가져와야함
+    job_description = job.get('description', "")
+    analysis_result_text = None # 분석 결과를 담을 변수 초기화
 
-    # 분석 결과 출력(Notion에 저장할 변수 담기)
-    print("--- Gemini 분석 결과 ---")
-    print(analysis_result)
-    print("------------------------")
+    if job_description:
+        analysis_result_text = analyze_job_posting(job_description)
+        print("--- Gemini 분석 결과 ---")
+        print(analysis_result_text) 
+        print("------------------------")
+    else:
+        print("   - 본문 내용이 없어 Gemini 분석을 건너뜁니다.")
 
     
     company = job['company']
