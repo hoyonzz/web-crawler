@@ -102,9 +102,9 @@ for i, job in enumerate(all_jobs):
 
     # ToDo 상세 페이지에 접속해서 공고 본문 텍스트를 가져와야함
     job_description = job.get('description', "")
-    analysis_result = analyze_job_posting(description) # 분석 결과를 담을 변수 초기화
+    analysis_result = None
 
-    if job_description:
+    if job_description and is_relevant:
         analysis_result = analyze_job_posting(job_description)
         if analysis_result:
             print("--- Gemini 분석 완료 ---")
