@@ -68,7 +68,7 @@ class JobKoreaCrawler(BaseCrawler):
         soup = BeautifulSoup(self.driver.page_source, 'lxml')
 
         description = ""
-        deadline = "상시채용" # 기본값
+        deadline = "확인 필요" # 기본값
 
         try:
             # 본문 내용 : 'detail-content'클래스를 가진 div가 가장 안정적

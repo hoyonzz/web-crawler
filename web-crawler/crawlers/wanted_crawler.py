@@ -4,7 +4,7 @@ from .base_crawler import BaseCrawler
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 
-
+from typing import Dict
 
 class WantedCrawler(BaseCrawler):
     # 원티드 사이트 크롤러
@@ -13,14 +13,12 @@ class WantedCrawler(BaseCrawler):
         # 부모 클래스 __init__을 호출하여 base_url 전달
         super().__init__("https://www.wanted.co.kr/")
 
-    def crawl(self, keyword: str = "백엔드", pages_to_crawl: int = 1, sort_by: str = 'latest'):
+    def crawl(self, keyword: str = "백엔드", pages_to_crawl: int = 1, is_newbie: bool = False):
         # BaseCrawler의 의무 조항을 실제로 구현, 원티드 채용 정보 크롤링하여 list of dict 형태로 반환
-        order_param = 'latest' if sort_by == 'latest' else 'score'
-
-        print(f"원티드에서 '{keyword}' 키워드로 '{sort_by}' 순으로 크롤링을 시작합니다...")
+        print(f"원티드에서 '{keyword}' 키워드로 크롤링을 시작합니다...")
 
         # 포지션 탭의 URL로 바로 접근하여 불필요한 클릭 과정 생략
-        target_url = f"{self.base_url}/search?query={keyword}&tab=position&order={order_param}"
+        target_url = f"{self.base_url}/search?query={keyword}&tab=position"
         self.driver.get(target_url)
         self._random_sleep()
 
@@ -70,8 +68,10 @@ class WantedCrawler(BaseCrawler):
         print(f"원티드에서 총 {len(job_data)}개의 공고를 찾았습니다.")
         return job_data
     
-    def get_job_description(self, url: str) -> str:
+    def get_job_description(self, url: str) -> Dict[str, str]:
         # 원티드의 상세 페이지의 본문 내용 수집:상세페이지에 방문, '더보기'버튼 클릭, 전체 본문 내용 수집
+        description = ""
+        deadline = "확인 필요"
 
         try:
             self.driver.get(url)
@@ -96,16 +96,17 @@ class WantedCrawler(BaseCrawler):
             content_article = soup.select_one('article[class*="JobDescription_JobDescription"]')
 
             if content_article:
-                return content_article.text.strip()
+                description = content_article.text.strip()
             else:
                 print("   -> [경고] 기본 선택자로 본문을 찾지 못했습니다. 2차 선택자를 시도합니다.")
 
                 # h2 태그 중 '포지션 상세'라는 텍스트를 가진 요소의 부모를 찾는다
                 h2 = soup.find('h2', string='포지션 상세')
-                if h2:
-                    return h2.parent.text.strip()
-                return ""
+                if h2 and h2.parent:
+                    description = h2.parent.text.strip()
+                
         except Exception as e:
-            print(f" [상세 정보 수집 오류] {url} 처리 중 문제 발생: {e}")
-            return ""
+            print(f" 🚨 [상세 정보 수집 오류] {url} 처리 중 문제 발생: {e}")
+        
+        return {'description': description, 'deadline':deadline}
  

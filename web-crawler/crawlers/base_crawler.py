@@ -10,6 +10,7 @@ import random
 from typing import Dict
 
 
+
 class BaseCrawler(ABC):
     # 모든 크롤러가 상속받아야 하는 추상 기본 클래스
 

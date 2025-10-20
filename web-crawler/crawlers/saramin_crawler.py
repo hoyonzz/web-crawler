@@ -57,7 +57,7 @@ class SaraminCrawler(BaseCrawler):
         soup = BeautifulSoup(self.driver.page_source, 'lxml')
 
         description_parts = []
-        deadline = '상시채용'
+        deadline = '확인 필요'
 
         try:
             # 본문 내용 : 'info-block' 클래스를 가진 모든 div의 텍스트
