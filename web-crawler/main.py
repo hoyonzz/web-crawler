@@ -22,81 +22,73 @@ TEST_MODE_LIMIT = 3
 NOTION_API_KEY = os.environ.get("NOTION_API_KEY")
 NOTION_DATABASE_ID = os.environ.get("NOTION_DATABASE_ID")
 notion = notion_client.Client(auth=NOTION_API_KEY)
-job_filter = PersonalizedJobFilter()
+
 
 # 파이프라인 시작 
-print("🚀 채용 공고 수집을 시작합니다.")
-all_new_jobs = []
+print("🚀 [1단계] 모든 사이트에서 기본 공고 목록 수집을 시작합니다.")
+all_jobs_basic_info = []
 # 클래스 자체를 리스트에 담아, 필요할 때 객체를 생성하는 방식으로 변경
 crawlers_to_run = [WantedCrawler, JobKoreaCrawler, SaraminCrawler]
 
 for crawlerClass in crawlers_to_run:
     crawler = crawlerClass()
     crawler_name = type(crawler).__name__
-    print(f"\n--- {crawler_name} 크롤링 시작 ---")
-    
+    print(f"\n--- {crawler_name} 실행 ---")
     try:
         jobs = crawler.crawl(keyword='백엔드', pages_to_crawl=1, is_newbie=True)
-        new_count = 0
-        
-        # 3. 2단계: Notion DB와 비교하여 이미 수집된 공고 제외
-        for i, job in enumerate(jobs):
-            link = job.get('link')
-            if not link: continue
-
-            print(f" ⏳ ({i+1}/{len(jobs)}) DB 중복 확인 중: {job.get('title', '')[:30]}...")
-            response = notion.databases.query(
-                database_id=NOTION_DATABASE_ID,
-                filter={"property": "링크", "url": {"equals": link}}
-            )
-            if len(response['results']) == 0:
-                all_new_jobs.append(job)
-                new_count += 1
-        print(f"   -> {new_count}개의 새로운 공고를 발견했습니다.")
+        all_jobs_basic_info.extend(jobs)
+        print(f"   -> {len(jobs)}개의 공고 목록 수집 완료.")
     except Exception as e:
-        print(f" [오류] {crawler_name} 실행 중 문제 발생:{e}")
-
+        print(f" 🚨 [오류] {crawler_name} 목록 수집 실패: {e} ")
     finally:
         crawler.close_driver()
+print(f"\n✅ [1단계 완료] 총 {len(all_jobs_basic_info)}개의 공고 목록 수집 완료.")
 
-print(f"\n✅[1단계 완료] 총 {len(all_new_jobs)}개의 새로운 공고를 발견했습니다.")
-
-if TEST_MODE_LIMIT is not None and len(all_new_jobs) > TEST_MODE_LIMIT:
-    print(f"\n⚠️ 시운전 모드: {len(all_new_jobs)}개의 신규 공고 중 {TEST_MODE_LIMIT}개만 상세 분석을 진행합니다.")
-    jobs_to_process_details = all_new_jobs[:TEST_MODE_LIMIT]
-else:
-    jobs_to_process_details = all_new_jobs
-
-print(f"\n[2단계] {len(jobs_to_process_details)}개 공고의 상세 정보 수집 시작...")
-full_new_jobs, failed_details_count = [], 0
-crawler_instances = {cls.__name__: cls() for cls in [WantedCrawler, JobKoreaCrawler, SaraminCrawler]}
-
-for i, job in enumerate(jobs_to_process_details):
-    source_crawer_name = job.get('source', '') + "Crawler"
-    crawler = crawler_instances.get(source_crawer_name)
+# 중복 제거 단계
+print(f"\n🚀 [2단계] Notion DB와 비교하여 신규 공고 필터링 시작...")
+new_jobs_basic_info = []
+for job in all_jobs_basic_info:
     link = job.get('link')
-
-    if not crawler or not link:
-        failed_details_count += 1
-        continue
-
-    print(f"\n[{i+1}/{len(jobs_to_process_details)}] 상세 정보 수집: {job.get('title', '')[:30]}...")
+    if not link: continue
     try:
-        details = crawler.get_job_description(link)
-        job['description'] = details.get('description', '')
-        job['deadline'] = details.get('deadline', '확인 필요')
+        response = notion.databases.query(
+            database_id=NOTION_DATABASE_ID,
+            filter={"property": "링크", "url": {"equals": link}}
+            )
+        if len(response['results']) == 0:
+            new_jobs_basic_info.append(job)
+    except Exception as e:
+        print(f"🚨 [오류] DB 중복 확인 실패: {job.get('title')}, {e}")
+print(f"\n✅ [2단계 완료] {len(new_jobs_basic_info)}개의 새로운 공고 발견.")
+
+# 상세 정보 수집 단계
+jobs_to_process = new_jobs_basic_info[:TEST_MODE_LIMIT] if TEST_MODE_LIMIT is not None else new_jobs_basic_info
+print(f"\n🚀 [3단계] {len(jobs_to_process)}개 신규 공고의 상세 정보 수집 시작...")
+full_new_jobs, failed_count = [], 0  
+crawler_instances = {cls.__name__: cls() for cls in crawlers_to_run}
+
+for job in jobs_to_process:
+    source_crawler_name = job.get('source', '') + "Crawler"
+    crawler = crawler_instances.get(source_crawler_name)
+    if not crawler: continue
+
+    try:
+        details = crawler.get_job_description(job['link'])
+        job.update(details)
         full_new_jobs.append(job)
     except Exception as e:
-        print(f" [오류] 상세 정보 수집 중 문제 발생: {e}")
-        failed_details_count += 1
+        print(f"🚨 [오류] 상세 정보 수집 실패: {job.get('title')}, {e}")
+        failed_count += 1
 
 for crawler in crawler_instances.values():
     crawler.close_driver()
-print(f"\n✅[2단계 완료] {len(full_new_jobs)}개의 공고에 대한 상세 정보 수집을 완료했습니다.")
+
+print(f"\n✅[3단계 완료] {len(full_new_jobs)}개의 공고에 대한 상세 정보 수집을 완료했습니다.")
 
 
-# 3단계: 분석 및 Notion 저장
-print("\n[3단계] 개인화 필터링, AI 분석 및 Notion 저장 시작...")
+# 분석 및 Notion 저장
+print("\n🚀[4단계] 개인화 필터링, AI 분석 및 Notion 저장 시작...")
+job_filter = PersonalizedJobFilter()
 success_count = 0
 filtered_count = 0
 
@@ -147,6 +139,6 @@ for i, job in enumerate(full_new_jobs):
 print("-" * 30)
 print("✅ 모든 파이프라인이 완료되었습니다.")
 print(f"  - 총 {success_count}개의 새로운 공고를 Notion에 저장했습니다.")
-print(f"  - {len(all_new_jobs) - len(full_new_jobs)}개의 공고는 상세 정보 수집 중 오류가 발생했습니다.")
+print(f"  - {failed_count}개의 공고는 상세 정보 수집 중 오류가 발생했습니다.")
 print(f"  - {filtered_count}개의 공고는 필터링되어 제외되었습니다.")
 print("-" * 30)

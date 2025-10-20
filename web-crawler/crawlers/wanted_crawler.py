@@ -3,6 +3,9 @@ from bs4 import BeautifulSoup
 from .base_crawler import BaseCrawler
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 from typing import Dict
 
@@ -15,12 +18,41 @@ class WantedCrawler(BaseCrawler):
 
     def crawl(self, keyword: str = "백엔드", pages_to_crawl: int = 1, is_newbie: bool = False):
         # BaseCrawler의 의무 조항을 실제로 구현, 원티드 채용 정보 크롤링하여 list of dict 형태로 반환
-        print(f"원티드에서 '{keyword}' 키워드로 크롤링을 시작합니다...")
-
+        print(f"원티드에서 '신입' 필터: {is_newbie}, '{keyword}' 키워드로 크롤링을 시작합니다...")
+    
         # 포지션 탭의 URL로 바로 접근하여 불필요한 클릭 과정 생략
         target_url = f"{self.base_url}/search?query={keyword}&tab=position"
         self.driver.get(target_url)
         self._random_sleep()
+
+        if is_newbie:
+            print("   -> '신입' 필터를 적용합니다...")
+            try:
+                # '경력' 필터 버튼 클릭
+                experience_button = self.driver.find_element(By.CSS_SELECTOR, 'button[data-filter-name="experience"]')
+                experience_button.click()
+                self._random_sleep()
+
+                # 슬라이더 조작
+                slider_handlers = self.driver.find_elements(By.CLASS_NAME, 'rc-slider-handle')
+                if len(slider_handlers) > 1:
+                    right_handle = slider_handlers[1]
+                    right_handle.send_keys(Keys.ARROW_LEFT * 20)
+                    
+                    print("   ->경력 슬라이더를 '신입'으로 조작했습니다.")
+                    self._random_sleep()
+
+                # '적용하기' 버튼을 클릭합니다.
+                apply_button = self.driver.find_element(By.XPATH, "//button[span[text()='적용하기']]")
+                apply_button.click()
+                print("   -> '적용하기' 버튼 클릭. 필터 결과 로딩을 기다립니다...")
+                time.sleep(5)
+
+                print("   ->'신입'필터가 성공적으로 적용되었습니다.")
+                
+            except Exception as e:
+                print(f"   🚨 [오류] '신입' 필터 적용 중 문제가 발생했습니다: {e}")
+
 
         # 무한 스크롤로 데이터 수집
         print(" - 무한 스크롤을 시작합니다.")
