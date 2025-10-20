@@ -35,7 +35,8 @@ for crawlerClass in crawlers_to_run:
     crawler_name = type(crawler).__name__
     print(f"\n--- {crawler_name} 실행 ---")
     try:
-        jobs = crawler.crawl(keyword='백엔드', pages_to_crawl=1, is_newbie=True)
+        pages = 5 if crawler_name != 'WantedCrawler' else 1
+        jobs = crawler.crawl(keyword='백엔드', pages_to_crawl=pages, is_newbie=True)
         all_jobs_basic_info.extend(jobs)
         print(f"   -> {len(jobs)}개의 공고 목록 수집 완료.")
     except Exception as e:

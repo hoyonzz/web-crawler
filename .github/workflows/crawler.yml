@@ -1,11 +1,12 @@
 # crawler.yml
 
-name: Wanted Job Crawler
+name: Daily Job Crawler
 
 on:
   schedule:
     # 매일 UTC 기준 20시에 실행 (한국 시간 새벽 5시)
     - cron: '0 20 * * *'
+  
   
   # 수동 실행 버튼
   workflow_dispatch:
@@ -21,7 +22,7 @@ jobs:
     # 이 job의 모든 run 명령어는 web-crowler 폴더 안에서 실행됩니다.
     defaults:
       run:
-        working-directory: ./web-crowler
+        working-directory: ./web-crawler
 
     steps:
       - name: Checkout repository
@@ -40,6 +41,7 @@ jobs:
         env:
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       
       - name: Upload Artifacts on failure # 실패시 결과물 업로드
         if: failure()
@@ -47,5 +49,5 @@ jobs:
         with:
           name: error-artifacts
           path: |
-            web-crowler/error_screenshot.png
-            web-crowler/error_page.html
+            web-crawler/error_screenshot.png
+            web-crawler/error_page.html
