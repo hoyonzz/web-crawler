@@ -20,7 +20,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 #         print(m.name)
 
 # 사용할 Gemini 모델 설정
-model = genai.GenerativeModel('models/gemini-2.0-flash')
+model = genai.GenerativeModel('gemini-2.0-flash')
 
 
 
