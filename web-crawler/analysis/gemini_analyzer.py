@@ -20,7 +20,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 #         print(m.name)
 
 # 사용할 Gemini 모델 설정
-model = genai.GenerativeModel('gemini-2.5-flash')
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 
 
@@ -91,11 +91,19 @@ Analyze the [Full Job Posting Text] and the [Pre-extracted Relevant Skills] prov
     try:
         response = model.generate_content(prompt)
         # Gemini 응답 텍스트 파싱
-        cleaned_text = response.text.strip().replace("```json", "").replace("```", "")
+        text = getattr(response, "text", None)
+        if not text:
+            text = response.condidates[0].content.parts[0].text
+
+        cleaned_text = text.strip().replace("``````", "")
         return json.loads(cleaned_text)
     
-    except (json.JSONDecodeError, Exception) as e:
-        print(f" [Gemini 오류] 응답 파싱 중 문제 발생: {e}")
-        print(f" 원본 응답: {response.text}")
+    except json.JSONDecodeError:
+        print(f" [Gemini 오류] JSON 응답 파싱 중 문제 발생. AI 응답 형식이 잘못됨.")
+        print(f" 원본 응답: {response}")
+        return None
+    
+    except Exception as e:
+        print(f" [Gemini 오류] 요청 또는 응답 처리 중 문제: {type(e).__name__}, {e}")
         return None
 

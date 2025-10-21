@@ -125,7 +125,8 @@ for i, job in enumerate(full_new_jobs):
         '출처':{'rich_text':[{'text':{'content':job.get('source', '출처 없음')}}]},
         '수집일':{'date':{'start':datetime.now().strftime("%Y-%m-%d")}},
         '마감일':{'rich_text':[{'text':{'content':job.get('deadline', '확인 필요')}}]},
-        'AI 분석 결과': {'rich_text':[{'text':{'content':ai_analysis_text}}]}
+        'AI 분석 결과': {'rich_text':[{'text':{'content':ai_analysis_text}}]},
+        '관련도 점수': {'number': score}
     }
 
     try:
