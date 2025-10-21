@@ -20,7 +20,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 #         print(m.name)
 
 # 사용할 Gemini 모델 설정
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('models/gemini-1.5-flash')
 
 
 
@@ -93,9 +93,10 @@ Analyze the [Full Job Posting Text] and the [Pre-extracted Relevant Skills] prov
         # Gemini 응답 텍스트 파싱
         text = getattr(response, "text", None)
         if not text:
-            text = response.condidates[0].content.parts[0].text
+            text = response.candidates[0].content.parts[0].text
 
-        cleaned_text = text.strip().replace("``````", "")
+        cleaned_text = response.text.strip().replace("```json", "").replace("```", "")
+
         return json.loads(cleaned_text)
     
     except json.JSONDecodeError:
