@@ -20,7 +20,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 #         print(m.name)
 
 # 사용할 Gemini 모델 설정
-model = genai.GenerativeModel('models/gemini-1.5-flash')
+model = genai.GenerativeModel('models/gemini-flash-latest')
 
 
 
@@ -90,18 +90,20 @@ Analyze the [Full Job Posting Text] and the [Pre-extracted Relevant Skills] prov
 
     try:
         response = model.generate_content(prompt)
-        # Gemini 응답 텍스트 파싱
-        text = getattr(response, "text", None)
-        if not text:
+        try:
+            # Gemini 응답 텍스트 파싱
+            text = response.text
+        except AttributeError:
+            print(" -> .text 속성을 찾을 수 없어 candidates에서 직접 추출합니다.")
             text = response.candidates[0].content.parts[0].text
-
+        
         cleaned_text = response.text.strip().replace("```json", "").replace("```", "")
 
         return json.loads(cleaned_text)
     
     except json.JSONDecodeError:
         print(f" [Gemini 오류] JSON 응답 파싱 중 문제 발생. AI 응답 형식이 잘못됨.")
-        print(f" 원본 응답: {response}")
+        print(f" 원본 응답: {text}")
         return None
     
     except Exception as e:
