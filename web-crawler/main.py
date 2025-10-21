@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 from dotenv import load_dotenv
 import notion_client
+import time
 
 
 from crawlers.wanted_crawler import WantedCrawler
@@ -104,6 +105,7 @@ for i, job in enumerate(full_new_jobs):
     if not is_relevant:
         print(f" -> [필터링됨] 관련도가 낮아 건너뜁니다. (점수: {score})")
         filtered_count += 1
+        time.sleep(0.5)
         continue
 
     print(f" -> [통과] 관련도 높음 (점수: {score}). AI 분석을 시작합니다...")
@@ -114,6 +116,9 @@ for i, job in enumerate(full_new_jobs):
 
     if not ai_analysis_json:
         print(" -> 🚨[오류] AI 분석에 실패했습니다. 다음 공고로 넘어갑니다.")
+        # 분석 실패 시에도 API 과부하를 피하기 위해 대기하기
+        print(" -> API 속도 제어를 위해 5초 대기합니다...")
+        time.sleep(5)
         continue
 
     # 3-3. Notion에 저장
@@ -135,6 +140,12 @@ for i, job in enumerate(full_new_jobs):
         print(f"    -> ✅ '{title}' Notion 저장 성공!")
     except Exception as e:
         print(f"   🚨 [오류] '{title}' 저장 실패! 원인: {e}")
+
+    # 속도 제어 로직 추가 Gemini API의 분당 요청 한도 15RPM을 준수하기 위해 대기
+    # 마지막 항목에서는 대기할 필요가 없으므로 조건추가
+    if i < len(full_new_jobs) - 1:
+        print(" -> API 속도 제어를 위해 5초 대기합니다...")
+        time.sleep(5)
 
 
 # 최종 결과 요약
