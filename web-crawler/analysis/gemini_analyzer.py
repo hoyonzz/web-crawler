@@ -115,7 +115,7 @@ Analyze the [Full Job Posting Text] and the [Pre-extracted Relevant Skills] prov
         
         # 마크다운 코드 블록 제거
         if cleaned_text.startwith("```"):
-            cleaned_text_text = cleaned_text.replace("``````", "").strip()
+            cleaned_text = cleaned_text.replace("```json", "").replace("```", "").strip()
           
         print(f" -> JSON 파싱 시도 중...")
         parsed_json = json.loads(cleaned_text)
