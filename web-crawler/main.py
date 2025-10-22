@@ -78,7 +78,7 @@ for idx, job in enumerate(jobs_to_process, 1):
         failed_count += 1
         continue
     
-    title = job.get('title', 제목 없음')
+    title = job.get('title', '제목 없음')
                     print(f"   ({idx}/{len(jobs_to_process}) 상세 정보 수집 중: {title}")
     try:
         details = crawler.get_job_description(job['link'])
