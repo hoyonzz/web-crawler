@@ -1,6 +1,7 @@
 import os
 import json
 import google.generativeai as genai
+import traceback
 
 from dotenv import load_dotenv
 from typing import Union
@@ -20,13 +21,14 @@ genai.configure(api_key=GEMINI_API_KEY)
 #         print(m.name)
 
 # 사용할 Gemini 모델 설정
-model = genai.GenerativeModel('gemini-2.0-flash')
+# model = genai.GenerativeModel('gemini-2.0-flash')
 
 
 
 def analyze_job_posting_with_ai(job_title: str, job_description: str, matched_skills: list) -> Union[dict, None]:
     # 채용 공고 내용을 Gemini API를 이용해 분석하고, 구조화된 JSON을 반환
     if not job_description:
+        print(" -> [경고] 공고 설명이 비어있습니다.")
         return None
     
     # AI에게 보낼 프롬프트(명령어)
@@ -89,13 +91,24 @@ Analyze the [Full Job Posting Text] and the [Pre-extracted Relevant Skills] prov
     )
 
     try:
+        # 매번 새로운 모델 인스턴스 생성
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        
+        print(f" -> Gemini API 호출 시작...")
         response = model.generate_content(prompt)
         try:
             # Gemini 응답 텍스트 파싱
             text = response.text
-        except AttributeError:
-            print(" -> .text 속성을 찾을 수 없어 candidates에서 직접 추출합니다.")
-            text = response.candidates[0].content.parts[0].text
+            print(f" -> API 응답 수신 성공 (길이: {len(text)}자)")
+        except AttributeError as ae:
+            print(" -> .text 속성을 찾을 수 없어 candidates에서 직접 추출합니다: {ae}")
+            try:
+              text = text = response.candidates[0].content.parts[0].text
+              print(f" -> candidates에서 텍스트 추출 성공 (길이: {len(text)}자)")
+            except Exception as e:
+              print(f" -> [오류] 응답 텍스트 추출 실패: {e}")
+              print(f" -> 전체 응답 객체: {response}")
+              return None
         
         cleaned_text = response.text.strip().replace("```json", "").replace("```", "")
 
