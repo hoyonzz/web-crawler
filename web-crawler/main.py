@@ -4,6 +4,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 import notion_client
 import time
+import traceback
 
 
 from crawlers.wanted_crawler import WantedCrawler
@@ -69,17 +70,36 @@ print(f"\n🚀 [3단계] {len(jobs_to_process)}개 신규 공고의 상세 정�
 full_new_jobs, failed_count = [], 0  
 crawler_instances = {cls.__name__: cls() for cls in crawlers_to_run}
 
-for job in jobs_to_process:
+for idx, job in enumerate(jobs_to_process, 1):
     source_crawler_name = job.get('source', '') + "Crawler"
     crawler = crawler_instances.get(source_crawler_name)
-    if not crawler: continue
-
+    if not crawler:
+        print(f"   ({idx}/{len(jobs_to_process)}) ⚠️ 크롤러를 찾을 수 없음: {source_crawler_name}")
+        failed_count += 1
+        continue
+    
+    title = job.get('title', 제목 없음')
+                    print(f"   ({idx}/{len(jobs_to_process}) 상세 정보 수집 중: {title}")
     try:
         details = crawler.get_job_description(job['link'])
+        if not details:
+            print(f"   ⚠️ 상세 정보가 None입니다. 건너뜁니다.")
+            failed_count += 1
+            continue
+        description = details.get('description', '')
+        
+        if not description or len(description.strip()) < 50:
+            print(f"   ⚠️ 공고 설명이 비었거나 너무 짧습니다 (길이: {len(description)}자). 건너뜁니다."")
+            failed_count += 1
+            continue
+            
         job.update(details)
         full_new_jobs.append(job)
+        print(f"    ✅ 상세 정보 수집 성공 (설명 길이: {len(description)}자)")
+        
     except Exception as e:
         print(f"🚨 [오류] 상세 정보 수집 실패: {job.get('title')}, {e}")
+        traceback.print_exc()
         failed_count += 1
 
 for crawler in crawler_instances.values():

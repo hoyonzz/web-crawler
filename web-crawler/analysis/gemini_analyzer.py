@@ -110,9 +110,18 @@ Analyze the [Full Job Posting Text] and the [Pre-extracted Relevant Skills] prov
               print(f" -> 전체 응답 객체: {response}")
               return None
         
-        cleaned_text = response.text.strip().replace("```json", "").replace("```", "")
+        # JSON 파싱
+        cleaned_text = text.strip()
+        
+        # 마크다운 코드 블록 제거
+        if cleaned_text.startwith("```"):
+            cleaned_text_text = cleaned_text.replace("``````", "").strip()
+          
+        print(f" -> JSON 파싱 시도 중...")
+        parsed_json = json.loads(cleaned_text)
+        print(f" -> ✅ JSON 파싱 성공!")
 
-        return json.loads(cleaned_text)
+        return parsed_json
     
     except json.JSONDecodeError:
         print(f" [Gemini 오류] JSON 응답 파싱 중 문제 발생. AI 응답 형식이 잘못됨.")
