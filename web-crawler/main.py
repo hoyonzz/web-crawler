@@ -79,7 +79,7 @@ for idx, job in enumerate(jobs_to_process, 1):
         continue
     
     title = job.get('title', '제목 없음')
-                    print(f"   ({idx}/{len(jobs_to_process}) 상세 정보 수집 중: {title}")
+    print(f"   ({idx}/{len(jobs_to_process)}) 상세 정보 수집 중: {title}")
     try:
         details = crawler.get_job_description(job['link'])
         if not details:
@@ -89,7 +89,7 @@ for idx, job in enumerate(jobs_to_process, 1):
         description = details.get('description', '')
         
         if not description or len(description.strip()) < 50:
-            print(f"   ⚠️ 공고 설명이 비었거나 너무 짧습니다 (길이: {len(description)}자). 건너뜁니다."")
+            print(f"   ⚠️ 공고 설명이 비었거나 너무 짧습니다 (길이: {len(description)}자). 건너뜁니다.")
             failed_count += 1
             continue
             
