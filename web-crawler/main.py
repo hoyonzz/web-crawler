@@ -4,6 +4,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 import notion_client
 import time
+import traceback
 
 
 from crawlers.wanted_crawler import WantedCrawler
@@ -15,7 +16,7 @@ from analysis.gemini_analyzer import analyze_job_posting_with_ai
 load_dotenv()
 
 # 테스트 시 분석할 최대 갯수
-TEST_MODE_LIMIT = None
+TEST_MODE_LIMIT = 5
 
 # 설정 초기화
 NOTION_API_KEY = os.environ.get("NOTION_API_KEY")
