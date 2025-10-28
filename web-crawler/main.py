@@ -157,7 +157,7 @@ finally:
     # 모든 작업이 끝난 후, 마지막에 드라이버 일괄 종료
     print("\n🚀 모든 작업 완료. 크롤러 드라이버를 종료합니다...")
     for crawler in crawler_instances.values():
-        crawler.close_drvier()
+        crawler.close_driver()
     print("✅ 모든 드라이버가 안전하게 종료되었습니다.")
 
 

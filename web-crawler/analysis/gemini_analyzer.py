@@ -1,8 +1,6 @@
 import os
 import json
 import google.generativeai as genai
-import traceback
-
 from dotenv import load_dotenv
 from typing import Union
 
@@ -10,17 +8,10 @@ from typing import Union
 dotenv_path = os.path.join(os.path.dirname(__file__), '..', '.env')
 load_dotenv(dotenv_path=dotenv_path)
 
-
-
 # API 키 설정
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 
-# for m in genai.list_models():
-#     if "generateContent" in m.supported_generation_methods:
-#         print(m.name)
-
-# 사용할 Gemini 모델 설정
 # model = genai.GenerativeModel('gemini-2.0-flash')
 
 
@@ -114,7 +105,7 @@ Analyze the [Full Job Posting Text] and the [Pre-extracted Relevant Skills] prov
         cleaned_text = text.strip()
         
         # 마크다운 코드 블록 제거
-        if cleaned_text.startwith("```"):
+        if cleaned_text.startswith("```"):
             cleaned_text = cleaned_text.replace("```json", "").replace("```", "").strip()
           
         print(f" -> JSON 파싱 시도 중...")
