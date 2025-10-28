@@ -4,7 +4,6 @@ from datetime import datetime
 from dotenv import load_dotenv
 import notion_client
 import time
-import traceback
 
 
 from crawlers.wanted_crawler import WantedCrawler
@@ -28,7 +27,7 @@ notion = notion_client.Client(auth=NOTION_API_KEY)
 # 스크립스 시작 시 모든 크롤러 인스턴스 미리 생성
 print("🚀 크롤러 인스턴스를 초기화합니다...")
 crawler_classes = [WantedCrawler, JobKoreaCrawler, SaraminCrawler]
-crawler_instances = {cls.__name__: cls() for cls in cralwer_classes}
+crawler_instances = {cls.__name__: cls() for cls in crawler_classes}
 print("✅ 모든 크롤러가 준비되었습니다.")
 
 # 전체 프로세스를 try...finally로 감싸 안정성 높이기
@@ -70,7 +69,6 @@ try:
     jobs_to_process = new_jobs_basic_info[:TEST_MODE_LIMIT] if TEST_MODE_LIMIT is not None else new_jobs_basic_info
     print(f"\n🚀 [3단계] {len(jobs_to_process)}개 신규 공고의 상세 정보 수집 시작...")
     full_new_jobs, failed_count = [], 0  
-    crawler_instances = {cls.__name__: cls() for cls in crawlers_to_run}
 
     for job in jobs_to_process:
         source_crawler_name = job.get('source', '') + "Crawler"
@@ -154,6 +152,13 @@ try:
         if i < len(full_new_jobs) - 1:
             print(" -> API 속도 제어를 위해 5초 대기합니다...")
             time.sleep(5)
+
+finally:
+    # 모든 작업이 끝난 후, 마지막에 드라이버 일괄 종료
+    print("\n🚀 모든 작업 완료. 크롤러 드라이버를 종료합니다...")
+    for crawler in crawler_instances.values():
+        crawler.close_drvier()
+    print("✅ 모든 드라이버가 안전하게 종료되었습니다.")
 
 
 # 최종 결과 요약
