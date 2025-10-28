@@ -37,8 +37,8 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run Gemini Model & Environment Check
-        run : python analysis/check_version.py
-        env :
+        run: python analysis/check_version.py
+        env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       - name: Run crawler
