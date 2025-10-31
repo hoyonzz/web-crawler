@@ -48,8 +48,8 @@ class SaraminCrawler(BaseCrawler):
                 except Exception:
                     continue
 
-            print(f"사람인에서 총 {len(all_job_data)}개의 유효한 공고를 추출했습니다.")
-            return all_job_data
+        print(f"사람인에서 총 {len(all_job_data)}개의 유효한 공고를 추출했습니다.")
+        return all_job_data
         
     def get_job_description(self, url: str) -> Dict[str, str]:
         self.driver.get(url)
