@@ -42,6 +42,7 @@ graph TD
     style F fill:#FF6347,stroke:#fff,stroke-width:2px,color:#fff
     style G fill:#32CD32,stroke:#fff,stroke-width:2px,color:#fff
     style I fill:#4B0082,stroke:#fff,stroke-width:2px,color:#fff
+```
 
 ---
 ## 🌟 1. 핵심 기능 (Core Features)
