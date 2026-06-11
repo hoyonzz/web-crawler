@@ -21,21 +21,21 @@
 ```mermaid
 graph TD
     %% Trigger Layer
-    A[GitHub Actions Scheduler <br> Cron: 매일 지정 시간] -->|1. Workflow Trigger| B(Ubuntu Container 환경)
+    A["GitHub Actions Scheduler <br> Cron: 매일 지정 시간"] -->|1. Workflow Trigger| B("Ubuntu Container 환경")
 
     %% Extract Layer
-    B -->|2. Dynamic Scraping| C[Selenium Web Driver <br> Explicit Waits 로직 적용]
-    C -->|3. 비정형 데이터 수집| D{채용 플랫폼 <br> 원티드 / 잡코리아 / 인크루트}
+    B -->|2. Dynamic Scraping| C["Selenium Web Driver <br> Explicit Waits 로직 적용"]
+    C -->|3. 비정형 데이터 수집| D{"채용 플랫폼 <br> 원티드 / 잡코리아 / 인크루트"}
 
     %% Transform & Filter Layer
-    D -->|4. Text Raw Data 반환| E[Python ETL Controller]
-    E -->|5. 1차 정적 필터링| F[Yaml 기반 기술 가중치 <br> 스코어링 알고리즘]
-    F -->|Score 미달 시 파이프라인 즉시 종료| X[Pipeline Early Exit]
-    F -->|Score 충족 시 AI 계층 전송| G[Gemini API 추론 레이어 <br> 3-Shot In-Context Learning]
+    D -->|4. Text Raw Data 반환| E["Python ETL Controller"]
+    E -->|5. 1차 정적 필터링| F["Yaml 기반 기술 가중치 <br> 스코어링 알고리즘"]
+    F -->|Score 미달 시 파이프라인 즉시 종료| X["Pipeline Early Exit"]
+    F -->|Score 충족 시 AI 계층 전송| G["Gemini API 추론 레이어 <br> 3-Shot In-Context Learning"]
 
     %% Load Layer
-    G -->|6. Structured JSON 변환| H[Notion API 스키마 매핑]
-    H -->|7. 유실률 0% 적재| I[(노션 채용 공고 칸반 보드)]
+    G -->|6. Structured JSON 변환| H["Notion API 스키마 매핑"]
+    H -->|7. 유실률 0% 적재| I["노션 채용 공고 칸반 보드"]
 
     %% Styling
     style A fill:#4169E1,stroke:#fff,stroke-width:2px,color:#fff
