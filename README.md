@@ -41,7 +41,7 @@ graph TD
 
     %% Load Layer
     G -->|6. Structured JSON 변환| H["Notion API 스키마 매핑"]
-    H -->|7. 중복 제거 후 적| I["노션 채용 공고 칸반 보드"]
+    H -->|7. 중복 제거 후 적재| I["노션 채용 공고 칸반 보드"]
 
     %% Styling
     style A fill:#4169E1,stroke:#fff,stroke-width:2px,color:#fff
