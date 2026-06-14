@@ -59,7 +59,7 @@ graph TD
 * 클라이언트 사이드 렌더링(CSR) 환경의 동적 데이터 누락을 방지하기 위해 임의의 `time.sleep`을 배제하고, 대상 요소의 메모리 로딩을 보장하는 **Explicit Waits(명시적 대기)** 메커니즘을 전면 적용했습니다.
 
 ### ⚙️ 가중치 기반 2단계 필터링 아키텍처 (Cost-Effective Pipeline)
-* **1차 정적 스코어링 알고리즘 (Static Filtering Layer):** `job_filter_config.yaml` 명세에 정의된 핵심 기술 키워드 매칭률과 가중치를 계산하여 1차 선별합니다. 수집된 Raw 데이터의 약 74%를 이 레이어에서 사전 컷아웃(Cut-out)함으로써 무분별한 LLM API 토큰 호출 비용을 획기적으로 차단했습니다.
+* **1차 정적 스코어링 알고리즘 (Static Filtering Layer):** `job_filter_config.yaml` 명세에 정의된 핵심 기술 키워드 매칭률과 가중치를 계산하여 1차 선별합니다. 수집된 Raw 데이터의 약91%를 이 레이어에서 사전 컷아웃(Cut-out)함으로써 무분별한 LLM API 토큰 호출 비용을 획기적으로 차단했습니다.
 * **2차 AI 직무 심층 분석 (LLM Inference Layer):** 1차 필터링을 통과한 고정제 데이터를 대상으로 Google Gemini API를 호출합니다. 자격요건, 우대사항, 직무 명세를 다각도로 해부하여 개인 적합도와 가설 검증 데이터를 도출합니다.
 
 ### 💾 관계형 데이터 스키마 변환 및 시각화 (Structured Load)
