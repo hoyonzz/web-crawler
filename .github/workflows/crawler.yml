@@ -22,7 +22,6 @@ jobs:
     # 이 job의 모든 run 명령어는 web-crowler 폴더 안에서 실행됩니다.
     defaults:
       run:
-        working-directory: ./web-crawler
 
     steps:
       - name: Checkout repository
@@ -54,5 +53,5 @@ jobs:
         with:
           name: error-artifacts
           path: |
-            web-crawler/error_screenshot.png
-            web-crawler/error_page.html
+            error_screenshot.png
+            error_page.html
