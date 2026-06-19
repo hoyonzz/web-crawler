@@ -1,96 +1,131 @@
-# 🤖 AI 에이전트 기반 채용 데이터 ETL 파이프라인 v1.0
+# 채용공고 자동 분석 파이프라인 (web-crawler)
 
-> **Serverless Automation Engine for Job Posting Analysis & Skill Mapping**
-
-여러 채용 플랫폼(Wanted, JobKorea, Saramin)의 비정형 공고 데이터를 실시간으로 스크래핑하고, 개인화된 기술 스택 YAML 명세에 따라 1차 정적 필터링을 수행한 뒤, 대규모 언어 모델(LLM)을 통해 직무 핵심 요구사항을 구조화된 JSON 데이터로 정제하여 Notion 아카이브에 적재하는 **서버리스 종단간(End-to-End) 데이터 파이프라인**입니다.
+> 매주 채용공고 검토에 쓰던 2~3시간의 수작업을 없애기 위해 만든 개인용 ETL 파이프라인.
+> 여러 채용 플랫폼의 공고를 수집해, 개인 기술 스택 기준으로 1차 필터링하고, LLM으로 적합도를 판정해 Notion에 정리한다.
 
 ---
 
-## 📊 파이프라인 운영 및 비용 최적화 지표 (Operational Metrics)
+## 프로젝트 동기
 
-> **Phase 1 안정성 검증 및 가동 완료** (데이터 확보 목표 달성 및 API 토큰 비용 최적화를 위해 현재는 의도적 일시 중단 상태)
+구직 활동 중, 매주 다음 작업을 수작업으로 반복했다.
 
-| 지표 항목 | 운영 및 정량적 성과 지표 | 비고 |
+- 여러 플랫폼의 새 공고 확인
+- 내 스택과 안 맞는 공고 거르기 (예: 백엔드여도 Java/Spring 단독 요구)
+- 기업 정보·평판 확인
+- 적합도 판단 후 정리
+
+여기에 매주 2~3시간이 들었다. 이 반복을 자동화하려고 수집·필터·판정·적재를 파이프라인으로 묶었다.
+포트폴리오용 토이 프로젝트가 아니라, 실제 내 병목을 푸는 도구로 시작했다.
+
+---
+
+## 개선 동기 (v1 → 고도화)
+
+v1은 "매주 공고 검토 시간을 줄인다"는 1차 목표는 달성했지만, 운영하면서 다음 한계를 확인했고 각각을 개선 중이다.
+
+| v1의 한계 | 개선 방향 | 기대 효과 |
 | :--- | :--- | :--- |
-| **누적 파이프라인 가동** | `130 회` (성공률 100%) | GitHub Actions 가상화 Ubuntu 컨테이너 환경 |
-| **원천 데이터 수집 건수** | `4,510 개` | 다중 플랫폼 중복 제거 전 Raw Data 총합 |
-| **최종 스키마 적재 건수** | `387 개` | 1차 정적 스코어링 및 2차 유효성 검증 통과 데이터 |
-| **인프라 유지 비용** | `0 원 / 월` | GitHub Actions 자원 최적화를 통한 완전 서버리스 구현 |
-| **데이터 처리 레이턴시** | `일일 평균 4분 12초` | Explicit Waits 자원 비블로킹 제어 최적화 |
+| 1차 필터가 가중치 합산 위주라, "백엔드"여도 Java/Spring 단독 요구 공고를 충분히 못 걸렀다 | 조건부 제외 룰 추가 (핵심 스택 부재 + 특정 언어 요구 시 컷) | 무관 공고가 적재 단계까지 새는 걸 차단 |
+| 수집 플랫폼이 원티드·잡코리아·사람인으로 한정 | 점핏 추가 | 신입 백엔드 공고 커버리지 확대 |
+| 2차 분석이 적합도를 충분히 구조화하지 못해 적재 후에도 수동 판단이 남았다 | 경력 적합·매칭도·지원 버전·분류를 자동 판정 | 적재된 공고를 바로 행동(지원/보류)으로 연결 |
+| GitHub Actions 러너에 의존해 로컬과 실행 환경이 갈렸다 | Docker 컨테이너화 | 환경 재현성 확보, 어디서나 동일 실행 |
+
+각 개선은 모두 "매주 수작업을 더 줄인다"는 본래 목적에 직접 연결된다.
+구조적 고도화(DB·오케스트레이션·테스트·정확도 평가)는 메인 프로젝트 완성 후 별도로 진행한다(아래 2단계).
 
 ---
 
-## 🛠️ 시스템 아키텍처 (System Architecture)
-
-의존성을 완전히 격리하고 인프라 오버헤드를 제로화한 서버리스 ETL 파이프라인의 구조도입니다.
+## 시스템 구조
 
 ```mermaid
 graph TD
-    %% Trigger Layer
-    A["GitHub Actions Scheduler <br> Cron: 매일 지정 시간"] -->|1. Workflow Trigger| B("Ubuntu Container 환경")
-
-    %% Extract Layer
-    B -->|2. Dynamic Scraping| C["Selenium Web Driver <br> Explicit Waits 로직 적용"]
-    C -->|3. 비정형 데이터 수집| D{"채용 플랫폼 <br> 원티드 / 잡코리아 / 사람인"}
-
-    %% Transform & Filter Layer
-    D -->|4. Text Raw Data 반환| E["Python ETL Controller"]
-    E -->|5. 1차 정적 필터링| F["Yaml 기반 기술 가중치 <br> 스코어링 알고리즘"]
-    F -->|Score 미달 시 파이프라인 즉시 종료| X["Pipeline Early Exit"]
-    F -->|Score 충족 시 AI 계층 전송| G["Gemini API 추론 레이어 <br> 3-Shot In-Context Learning"]
-
-    %% Load Layer
-    G -->|6. Structured JSON 변환| H["Notion API 스키마 매핑"]
-    H -->|7. 중복 제거 후 적재| I["노션 채용 공고 칸반 보드"]
-
-    %% Styling
-    style A fill:#4169E1,stroke:#fff,stroke-width:2px,color:#fff
-    style F fill:#FF6347,stroke:#fff,stroke-width:2px,color:#fff
-    style G fill:#32CD32,stroke:#fff,stroke-width:2px,color:#fff
-    style I fill:#4B0082,stroke:#fff,stroke-width:2px,color:#fff
+    A["GitHub Actions (cron)"] -->|트리거| B["Docker 컨테이너"]
+    B -->|수집| C["Selenium WebDriver"]
+    C --> D["원티드 / 잡코리아 / 사람인 / 점핏"]
+    D -->|원천 데이터| E["Python ETL"]
+    E -->|1차 정적 필터| F["YAML 키워드 가중치 + 제외 룰"]
+    F -->|점수 미달·제외 조건| X["컷 (LLM 호출 안 함)"]
+    F -->|통과| G["Gemini API 2차 판정 (구조화 JSON)"]
+    G -->|매핑| H["Notion API"]
+    H --> I["Notion 칸반 보드"]
 ```
 
 ---
 
-## 🌟 1. 핵심 기능 (Core Features)
+## 핵심 기능
 
-### 🌐 비블로킹 다중 플랫폼 스크래핑 (Advanced Extraction)
-* 단일 스크립트 내에서 원티드, 잡코리아, 사람인 등 상이한 DOM 구조를 가진 이종 플랫폼의 웹페이지를 파싱합니다.
-* 클라이언트 사이드 렌더링(CSR) 환경의 동적 데이터 누락을 방지하기 위해 임의의 `time.sleep`을 배제하고, 대상 요소의 메모리 로딩을 보장하는 **Explicit Waits(명시적 대기)** 메커니즘을 전면 적용했습니다.
+### 다중 플랫폼 수집
+- 원티드·잡코리아·사람인·점핏의 공고를 Selenium으로 수집한다.
+- 동적 로딩 요소는 `time.sleep` 대신 명시적 대기(`WebDriverWait`)로 처리한다.
+- 예외가 나도 브라우저 프로세스를 회수하도록 `try-finally`로 정리한다.
 
-### ⚙️ 가중치 기반 2단계 필터링 아키텍처 (Cost-Effective Pipeline)
-* **1차 정적 스코어링 알고리즘 (Static Filtering Layer):** `job_filter_config.yaml` 명세에 정의된 핵심 기술 키워드 매칭률과 가중치를 계산하여 1차 선별합니다. 수집된 Raw 데이터의 약91%를 이 레이어에서 사전 컷아웃(Cut-out)함으로써 무분별한 LLM API 토큰 호출 비용을 획기적으로 차단했습니다.
-* **2차 AI 직무 심층 분석 (LLM Inference Layer):** 1차 필터링을 통과한 고정제 데이터를 대상으로 Google Gemini API를 호출합니다. 자격요건, 우대사항, 직무 명세를 다각도로 해부하여 개인 적합도와 가설 검증 데이터를 도출합니다.
+### 2단계 필터 (LLM 호출 비용 절감)
+- **1차 (정적):** `job_filter_config.yaml`의 키워드 가중치와 제외 룰로 선별한다.
+  수집분의 상당 부분을 이 단계에서 컷해 불필요한 LLM 호출을 막는다.
+- **2차 (LLM):** 1차를 통과한 공고만 Gemini를 호출해 자격요건·우대사항·직무를 해석한다.
 
-### 💾 관계형 데이터 스키마 변환 및 시각화 (Structured Load)
-* LLM이 반환한 비정형 추론 결과를 백엔드 컨트롤러 내부에서 유효성 검증을 거쳐 Structured JSON 포맷으로 규격화합니다.
-* `notion-client` 인터페이스를 가로질러 복잡한 블록(Block) 구조체 스키마에 정밀 매핑하여 자동 적재하며, 칸반 보드 아키텍처를 기반으로 `[새로 수집됨]`, `[검토 중]`, `[지원 완료]` 등의 상태 머신(State Machine)을 구현하여 데이터의 생명주기를 시각적으로 관리합니다.
+### Gemini 구조화 판정
+공고별로 다음을 구조화 JSON으로 판정한다.
+- 경력요건이 신입~2년에 해당하는가
+- 요구기술이 내 스택(Python / FastAPI / LLM / 크롤링 / 비동기)과 얼마나 맞는가 — 상 / 중 / 하
+- 이력서 A(백엔드)·B(AI) 중 어느 쪽으로 지원할지
+- 즉시지원 / 도전 / 보존 분류
+
+출력 형식은 시스템 프롬프트로 스키마를 강제하고, few-shot 예시를 함께 제공해 안정화한다.
+
+### Notion 적재
+판정 결과(매칭도·버전·분류)를 Notion 칸반의 속성으로 기록하고,
+상태(새로수집 / 검토중 / 지원완료)로 공고의 생명주기를 관리한다.
 
 ---
 
-## 🛠️ 2. 기술 스택 (Tech Stack)
+## 기술 스택
 
-| 분류 | 적용 기술 및 도구 |
+| 분류 | 도구 |
 | :--- | :--- |
-| **Language** | Python |
-| **Data Extraction** | Selenium WebDriver |
-| **Inference & Open API** | Google Gemini API, Notion API |
-| **Automation / CI** | GitHub Actions |
-| **Configuration** | YAML |
+| 언어 | Python |
+| 수집 | Selenium WebDriver |
+| 추론 · 연동 | Google Gemini API, Notion API |
+| 자동화 | GitHub Actions (cron) |
+| 실행 환경 | Docker |
+| 설정 | YAML |
 
 ---
 
-## 🧠 3. 핵심 엔지니어링 포인트 (Engineering Focus)
+## 운영 지표
 
-### ① 에페메럴(Ephemeral) 환경에서의 메모리 및 좀비 프로세스 제어
-GitHub Actions의 유한한 호스트 자원 환경 내에서 Headless Chrome 및 WebDriver 구동 시 발생하는 **메모리 누수(Memory Leak)** 리스크를 최소화했습니다. 가상 컨테이너 인프라 환경의 제약 조건을 고려하여, 파이프라인 예외 발생 시에도 가상 디스플레이 및 브라우저 프로세스를 커널 레이어에서 확실히 회수하도록 내부 스크립트에 `try-finally` 블록 기반의 **자원 정리(Context Clean-up)** 로직을 견고히 설계했습니다.
+> 가동 로그 기준. 측정 근거가 확인된 항목만 기재하며, 미검증 수치는 비워둔다.
 
-### ② LLM 출력의 비결정성(Hallucination) 제어
-자연어 모델이 출력 스키마 규칙을 위반하거나 무분별한 카테고리를 무작위 생성하는 결함(JSON 포맷 파괴)을 방지하고자, **System Prompt 단에서 타입 유효성 규칙을 강제**했습니다. Target 도메인에 특화된 3-Shot 인콘텍스트 러닝(In-Context Learning) 기법을 결합하여 가공된 구조화 데이터의 유효성 통과 비율을 95% 이상으로 끌어올렸습니다.
+| 항목 | 값 |
+| :--- | :--- |
+| 누적 가동 횟수 | _(로그로 확정 필요)_ |
+| 원천 수집 건수 | 4,510건 (중복 제거 전) |
+| 최종 적재 건수 | 387건 |
+| 1차 필터 컷 비율 | 약 91% |
+| 인프라 비용 | 월 0원 (GitHub Actions 무료 한도 내) |
 
 ---
 
-## 🚀 4. 향후 고도화 계획 (v2.0 Roadmap)
+## 진행 상태
 
-* **[ ] 정답 데이터셋 기반 가중치 매트릭스 역튜닝 (Model Refinement):** 가동 기간 중 선별된 17개의 '최적합 공고 데이터셋'을 기준으로 역산(Backpropagation) 알고리즘 논리를 적용하여 `job_filter_config.yaml` 파일의 키워드 임계치 및 가중치 계수를 정밀 수학적 모델로 고도화.
-* **[ ] 분산 오케스트레이션 마이그레이션 (Pipeline Scaling):** GitHub Actions Cron 스케줄러 기반의 단일 파이프라인 구조를 확장하여, 대규모 데이터 분산 적재가 가능한 Apache Airflow 및 Celery + Redis 메시지 브로커 복합 아키텍처로의 데이터 레이어 이관 및 격리 설계.
+- **가동 완료:** 원티드·잡코리아·사람인 수집, 2단계 필터, Gemini 판정, Notion 적재 (데이터 확보 목표 달성으로 의도적 일시 중단)
+- **1단계 고도화 (진행 중):** 조건부 제외 룰, 점핏 수집, 판정 항목 확장, Notion 속성 개편, Docker 컨테이너화
+
+---
+
+## 향후 계획
+
+**1단계 (진행 중) — 병목 해소**
+- 무관 공고 자동 제외 (YAML 제외·조건부 룰)
+- 점핏 플랫폼 수집 추가
+- Gemini 판정 항목 추가 (경력 적합 / 매칭도 / 지원 버전 / 분류)
+- Notion 적재 구조 개편
+- Docker 컨테이너화
+
+**2단계 (예정) — 구조 고도화**
+- SQLAlchemy + PostgreSQL (Docker Compose)
+- LangGraph 오케스트레이션 (조건부 엣지·재시도)
+- 경계 케이스 검증(reflection) 노드
+- 테스트 + CI 품질 게이트 (ruff / mypy / pytest)
+- 1차 필터 정확도 평가(precision/recall)
+- Playwright 마이그레이션 검토
