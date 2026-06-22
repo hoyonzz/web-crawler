@@ -1,94 +1,103 @@
-# 1순위: 핵심 역량
-core_skills:
-  weight: 3.0
-  keywords:
-    - python
-    - django
-    - postgresql
-    - postgres
-    - mysql
-    - aws
-    - lightsail
+target_positions:
+  - Backend Engineer
+  - Web Developer
+  - Data Engineer
+  - AI Service Engineer
+  - ML/AI Backend 
 
-# 2순위: 백엔드 일반, 포트폴리오 관련
-general_backend:
-  weight: 2.5
-  keywords:
-    - 백엔드
-    - backend
-    - server
-    - api
-    - 서버
-    - flask
-    - fastapi
-    - rest
-    - restful
-    - rest api
-    - api 개발
-    - celery
-    - django rest framework
-    - drf
+filter_rules:
+  # 기준 점수 core 1개 또는 growth 2개 수준
+  threshold: 5.0
+    # [1순위] Core Mastery(가중치 5.0)
+  core_mastery:
+    weight: 5.0
+    keywords:
+      - python
+      - django
+      - django rest framework
+      - drf
+      - fastapi
+      - langchain
+      - langgraph
+      - prompt engineering
+      - llm
+      - asyncio
+      - 비동기
+      - websocket
+      - etl
+      - 데이터 파이프라인
+      - msa
+      - 데이터 레이크
+      - celery
 
-# 3순위: 성장 목표, 확장 역량
-growth_potential:
-  weight: 2.0
-  keywords:
-    - ai
-    - llm
-    - 대규모 언어 모델
-    - chatgpt
-    - gpt
-    - 데이터 엔지니어
-    - data engineer
-    - 데이터 파이프라인
-    - etl
-    - 데이터 처리
-    - oauth
-    - jwt
-    - 소셜 로그인
-    - 인증
-    - authentication
+  # [2순위] Modern Backend && AI Bonus(가중치 3.0)
+  # 부족한 스택을 파악하는 피드백 지료로도 활용
+  growth_and_bonus:
+    weight: 3.0
+    keywords:
+      - postgresql
+      - mysql
+      - aws
+      - lightsail
+      - backend
+      - 백엔드
+      - api
+      - gemini
+      - 크롤링
+      - 데이터 전처리
+      - github actions
+      - ci/cd
+      - 대용량 트래픽
+      - ai
+      - 데이터 엔지니어
+      - data engineer
+      - docker
+      - k8s
+      - kubernetes
+      - nginx
+      - gunicorn
+      - redis
+      - kafka
+  # [3순위] Base Tools (가중치 1.0)
+  base_tools:
+    weight: 1.0
+    keywords:
+      - git
+      - github
 
-# 4순위: DevOps, 테스트
-devops_infra:
-  weight: 1.5
-  keywords:
-    - git
-    - github
-    - gitlab
-    - docker
-    - kubernetes
-    - k8s
-    - nginx
-    - gunicorn
-    - uwsgi
-    - ec2
-    - rds
-    - s3
-    - lambda
-    - redis
-    - rabbitmq
-    - kafka
-    - pytest
-    - unittest
-    - 단위테스트
-    - 테스트
-    - test
-    - tdd
+  # [조건부 제외 룰] Conditional Exclude
+  exclude_conditional:
+    - description: "파이썬 스택 없이 Java/Spring 단독 생태계 요구"
+      if_missing_all: 
+        - python
+        - django
+        - fastapi
+        - flask
+      and_present_any: 
+        - java
+        - spring
+        - kotlin
+        - jsp
+        - php
+    - description: "파이썬 스택 없이 Node/JS 단독 생태계 요구 (인플레이션 방어)"
+      if_missing_all: 
+        - python
+        - django
+        - fastapi
+        - flask
+      and_present_any: 
+        - node
+        - node.js
+        - nestjs
+        - express
 
-# 제외 키워드 (가중치 없음)
-exclude:
-  - 프론트엔드
-  - frontend
-  - react
-  - vue
-  - angular
-  - ui
-  - ux
-  - 디자인
-  - ios
-  - android
-  - flutter
-  - 게임
-  - unity
-  - unreal
+  # [절대 제외 룰]
+  exclude_absolute:
+    - 프론트엔드
+    - react
+    - vue
+    - 안드로이드
+    - ios
+    - 퍼블리셔
+    - 국비
+    - 블록체인

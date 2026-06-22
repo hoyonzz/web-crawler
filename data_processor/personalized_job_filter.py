@@ -1,195 +1,167 @@
-from typing import Dict, Tuple, List
 import re
-import os
 import yaml
-from functools import lru_cache
 from pathlib import Path
 
 
 
 class PersonalizedJobFilter:
     """
-    신호용 님의 포트폴리오 기반 개인화된 채용 공고 필터.
-    
-    포트폴리오 분석 결과:
-    - JumpToDjango: Django, PostgreSQL, AWS Lightsail, REST API
-    - 소셜 로그인(OAuth), 단위 테스트, Git 경험
-    - 성장 목표: AI/LLM, 데이터 처리, 자동화
-    
-    개선 사항:
-    - 키워드 20개 → 40개로 확장
-    - 매칭 키워드 수를 고려한 점수 증폭
-    - None/빈 문자열 예외 처리 추가
-    - 정규표현식 활용으로 성능 향상
-    - 통계 메서드 추가
+    포트폴리오 기반 개인화된 채용 공고 필터.
+    YAML 설정을 동적으로 로드하고, 스마트 매칭 알고리즘을 통해 관련도 점수를 평가하는 ETL 파이프라인의 Transform 핵심엔진
     """
-    
+
     def __init__(self, config_path: str = None):
+        # 1. 경로 설정
         if config_path is None:
             current_dir = Path(__file__).parent.parent
             config_path = current_dir / 'config' / 'job_filter_config.yaml'
-        self.my_keywords = self._load_config(str(config_path))
 
-        # 점수 계산용 그룹 목록을 설정 ('exclude'는 제외)
-        self._score_groups = [key for key in self.my_keywords.keys() if key != 'exclude']
+        # 2. 설정 로드(관심사 분리: 파일 읽기 전담 메서드 호출)
+        self.config = self._load_config(str(config_path))
+        self.filter_rules = self.config.get('filter_rules', {})
 
-        self._max_score = sum(self.my_keywords[group].get('weight', 0) for group in self._score_groups)
-        
-    def _load_config(self, config_path:str) -> Dict:
-        # YAML 설정 파일을 읽어오는 내부 메서드
+        # 3. YAML 데이터 구조화 및 메모리 할당
+        self.threshold = self.filter_rules.get('threshold', 5.0)
+
+        self.score_groups = {}
+        self.exclude_absolute = []
+        self.exclude_conditional = []
+
+        # YAML의 딕셔너리를 순회하며 목적에 맞게 변수에 분배
+        for key, value in self.filter_rules.items():
+            if key == 'threshold':
+                continue
+            elif key == 'exclude_absolute':
+                self.exclude_absolute = [k.lower() for k in value]
+            elif key == 'exclude_conditional':
+                self.exclude_conditional = value
+            elif isinstance(value, dict) and 'weight' in value and 'keywords' in value:
+                self.score_groups[key] = {
+                    'weight' : value['weight'],
+                    'keywords' : [k.lower() for k in value['keywords']]
+                }
+
+    def _load_config(self, config_path: str) -> dict:
+        """
+        YAML 파일을 읽어 딕셔너리로 반환하는 내부(Private)메서드.
+        Fail-Fast 원칙을 적용하여 I/O 예외를 엄격하게 통제합니다.
+        """
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
                 config = yaml.safe_load(f)
 
-            # 필수 키 검증
-            required_keys = ['core_skills', 'general_backend']
-            for key in required_keys:
-                if key not in config:
-                    raise ValueError(f"설정 파일에 '{key}' 그룹이 없습니다.")
-                
+            # 데이터 정합성 필수 검증(뼈대 그룹이 없으면 실행 자체를 막음)
+            if not config or 'filter_rules' not in config:
+                raise ValueError("설정 파일에 핵심 그룹인 'filter_rules'가 누락 되었습니다.")
+            
             return config
 
         except FileNotFoundError:
-            print(f"\n❌ 오류: 설정 파일을 찾을 수 없습니다.")
-            print(f"   찾는 경로: {os.path.abspath(config_path)}")
-            print(f"   현재 작업 디렉토리: {os.getcwd()}")
-            print(f"\n해결 방법:")
-            print(f"   1. config/job_filter_config.yaml 파일이 있는지 확인하세요.")
-            print(f"   2. 프로젝트 루트에서 실행하고 있는지 확인하세요.")
-            raise
-            
-        except yaml.YAMLError as e:
-            print(f"\n❌ 오류: YAML 파일 형식이 잘못되었습니다.")
-            print(f"   {e}")
-            raise
-            
-        except Exception as e:
-            print(f"\n❌ 오류: 설정 파일 로딩 중 문제가 발생했습니다.")
-            print(f"   {e}")
+            print(f"\n❌ [치명적 오류] 설정 파일을 찾을 수 없습니다.")
+            print(f" 💡 시스템이 찾는 경로: {config_path}")
             raise
 
+        except yaml.YAMLError as e:
+            print(f"\n❌ [치명적 오류] YAML 파일의 들여쓰기나 문법이 잘못되었습니다.")
+            print(f" 💡 상세 에러: {e}")
+            raise
+
+        except Exception as e:
+            print(f"\n❌ [치명적 오류] 설정 파일 로딩 중 알 수 없는 문제가 발생했습니다.")
+            print(f" 💡 상세 에러: {e}")
+            raise
+
+    def _contains(self, text:str, keyword: str) -> bool:
+        """
+        영문/숫자는 전후방 탐색으로, 한글은 단순 포함(in)으로 매칭
+        """
+        kw = keyword.lower()
+
+        # 1. 아스키코드(영문, 숫자 등)인 경우 -> 단어 경계 매칭
+        if kw.isascii():
+            pattern = rf'(?<![a-zA-Z]){re.escape(kw)}(?![a-zA-Z])'
+            return re.search(pattern, text) is not None
+        
+        # 2. 한글이 섞인 경우 -> 단순 포함 검색
+        return kw in text
     
-    def calculate_relevance_score(self, job_title: str, job_description: str) -> Tuple[bool, float]:
+    def calculate_relevance_score(self, job_title: str, job_description: str) -> tuple[bool, float]:
         """
-        채용 공고의 관련도를 점수화합니다.
-        
-        개선 사항:
-        - None/빈 문자열 예외 처리 추가
-        - 매칭된 키워드 수를 고려한 점수 증폭
-        - 정규화 로직 개선
-        
-        :param job_title: 채용 공고 제목
-        :param job_description: 채용 공고 설명
-        :return: (백엔드 직무 여부, 관련도 점수)
+        Guard Clause(입구 컷) 패턴을 적용하여 제외 공고를 빠르게 걸러내고,
+        절대 평가(threshold)방식으로 점수를 판정합니다.
         """
-        # 예외 처리
-        if not job_title:
-            job_title = ""
-        if not job_description:
-            job_description = ""
-        
+        job_title = job_title or ""
+        job_description = job_description or ""
         full_text = f"{job_title} {job_description}".lower().strip()
         
-        # 빈 텍스트 체크
-        if not full_text or len(full_text) < 10:
+        if len(full_text) < 10:
             return False, 0.0
         
-        # 1. 제외 키워드 우선 체크
-        has_exclude = any(word in full_text for word in self.my_keywords['exclude'])
-        
-        # 핵심/일반 백엔드 키워드 체크
-        core_keywords = (self.my_keywords['core_skills']['keywords'] + 
-                        self.my_keywords['general_backend']['keywords'])
-        is_backend_related = any(word in full_text for word in core_keywords)
-        
-        if has_exclude and not is_backend_related:
+        # [Guard 1] 절대 제외 룰 (무조건 입구 컷)
+        if any(self._contains(full_text, w) for w in self.exclude_absolute):
             return False, 0.0
         
-        # 2. 가중치 기반 점수 계산 (개선: 매칭 키워드 수 고려)
-        score = 0.0
-        
-        for group_name in self._score_groups:
-            group = self.my_keywords[group_name]
+        # [Guard 2] 조건부 제외 룰 (핵심 스택 부재 + 특정 생태계 요구)
+        for rule in self.exclude_conditional:
+            missing_all = not any(self._contains(full_text, w) for w in rule.get('if_missing_all', []))
+            present_any = any(self._contains(full_text, w) for w in rule.get('and_present_any', []))
+
+            if missing_all and present_any:
+                return False, 0.0
+            
+        # [Scoring] 가중치 점수 합산 (Guard를 무사히 통과한 공고만 연산)
+        raw_score = 0.0
+        for group in self.score_groups.values():
             keywords = group['keywords']
             base_weight = group['weight']
-            
-            # 그룹 내 매칭된 키워드 수 계산
-            matched_count = sum(1 for keyword in keywords if keyword in full_text)
-            
-            if matched_count > 0:
-                # 매칭 키워드가 많을수록 점수 증가 (최대 1.5배)
-                # 1개: 1.0배, 2개: 1.2배, 3개: 1.4배, 4개 이상: 1.5배
-                multiplier = min(1.0 + (matched_count - 1) * 0.2, 1.5)
-                score += base_weight * multiplier
-        
-        # 3. 최종 점수 정규화 (0.0 ~ 1.0)
-        final_score = score / self._max_score if self._max_score > 0 else 0.0
-        
-        # 임계값: 0.25 (25% 이상)
-        # - core_skills 1개: 3.0/9.0 ≈ 0.33 ✓
-        # - general_backend 1개: 2.5/9.0 ≈ 0.28 ✓  
-        # - growth_potential 1개: 2.0/9.0 ≈ 0.22 ✗
-        is_relevant = final_score >= 0.25
-        
-        return is_relevant, round(final_score, 3)
-    
-    
-    @lru_cache(maxsize=1000)
-    def _normalize_keyword(self, keyword: str) -> str:
-        """키워드 정규화 (캐싱)"""
-        return keyword.lower().strip()
-    
-    
-    def extract_matched_skills(self, job_description: str) -> List[str]:
+
+            # 매칭된 키워드 개수 산출
+            matched_count = sum(1 for kw in keywords if self._contains(full_text, kw))
+
+            raw_score += (matched_count * base_weight)
+
+
+        # [Final 판정] YAML에 명시된 threshold (5.0) 절대값 비교 (max_score 나누기 제거!)
+        is_relevant = raw_score >= self.threshold
+
+        # 점수 정규화
+        TARGET_MAX_SCORE = 25.0
+        normalized_score = min(raw_score / TARGET_MAX_SCORE, 1.0)
+
+        return is_relevant, round(normalized_score, 3)
+
+    def extract_matched_skills(self, job_description: str) -> list[str]:
         """
-        공고 본문에서 매칭된 기술 키워드를 추출합니다.
-        
-        개선 사항:
-        - 정규표현식 활용으로 정확도 향상
-        - 중복 제거 및 정렬
-        
-        :param job_description: 채용 공고 설명
-        :return: 매칭된 기술 키워드 리스트
+        (Notion 태그용)공고 본문에서 실제로 매칭된 기술 키워드 리스트 추출
         """
-        if not job_description:
+        job_title = job_title or ""
+        job_description = job_description or ""
+
+        full_text = f"{job_title} {job_description}.lower().strip()"
+
+        if len(full_text) < 10:
             return []
-        
-        text_lower = job_description.lower()
+
         found_skills = []
-        
-        # 검색 대상 키워드 (exclude 제외)
-        all_keywords = []
-        for group_name in self._score_groups:
-            all_keywords.extend(self.my_keywords[group_name]['keywords'])
-        
-        # 단어 경계를 고려한 매칭 (더 정확)
-        for skill in all_keywords:
-            # 정규표현식 패턴: 단어 경계 내에서 매칭
-            pattern = r'\b' + re.escape(skill) + r'\b'
-            if re.search(pattern, text_lower):
-                found_skills.append(skill)
-        
-        # 중복 제거 및 정렬
+
+        for group in self.score_groups.values():
+            for kw in group['keywords']:
+                if self._contains(full_text, kw):
+                    found_skills.append(kw)
+
         return sorted(list(set(found_skills)))
     
-    
-    def get_keyword_stats(self) -> Dict:
+    def get_keyword_stats(self) -> dict:
         """
-        키워드 통계 정보 반환 (디버깅/모니터링용)
-        
-        :return: 키워드 그룹별 통계
+        (디버깅/모니터링용) 현재 시스템에 로드된 키워드 통계 반환
         """
         stats = {}
-        for group_name in self._score_groups:
-            group = self.my_keywords[group_name]
-            stats[group_name] = {
-                'count': len(group['keywords']),
-                'weight': group['weight'],
-                'keywords': group['keywords']
+        for name, group in self.score_groups.items():
+            stats[name] = {
+                'count' : len(group['keywords']),
+                'weight' : group['weight']
             }
-        
-        stats['exclude_count'] = len(self.my_keywords['exclude'])
-        stats['max_score'] = self._max_score
-        
-        return stats
 
+        stats['exclude_absolute_count'] = len(self.exclude_absolute)
+        stats['threshold'] = self.threshold
+        return stats
