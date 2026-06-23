@@ -3,6 +3,8 @@ import os
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
+from selenium.webdriver.common.by import By
+
 
 print("🚀 도커 컨테이너 내부 크롬 구동 테스트 시작")
 
@@ -16,8 +18,14 @@ try:
     print("1. 브라우저 드라이버 초기화 중...")
     driver = webdriver.Chrome(options=options)
 
-    print("2. 테스트 페이지(구글) 접속 중...")
-    driver.get("https://wanted.co.kr")
+    print("2. 테스트 페이지 접속 중...")
+    driver.get("https://www.wanted.co.kr/")
+
+    invalid_titles = ["ERROR", "Access Denied", "Just a moment", "Attention Required"]
+
+    for invalid_word in invalid_titles:
+        if invalid_word in invalid_titles:
+            raise Exception(f"봇 장어 시스템 차단 감지됨 (페이지 제목: {driver.title})")
 
     print(f"🎉 성공! 접속한 페이지 제목: '{driver.title}'")
     driver.quit()
