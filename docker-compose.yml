@@ -1,0 +1,19 @@
+services:
+  crawler:
+    # 1. 빌드 컨텍스트: 현재 폴더의 Dockerfile사용
+    build: .
+    container_name: job_crawler_runner
+
+    # 2. .env파일 환경변수 설정
+    env_file:
+    - .env
+
+    # 3. 공유 메모리 확장
+    shm_size: '2gb'
+
+    # 4. 볼륨 마운트 로컬의 현재 폴더와 /app폴더 연결
+    volumes:
+      - .:/app
+
+    # 5. 최종 실행 명령어
+    command: python docker_test.py

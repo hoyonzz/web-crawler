@@ -1,12 +1,10 @@
 # crawler.yml
-
-name: Daily Job Crawler
+name: Dockerized Crawler Pipeline
 
 on:
   # schedule:
   #   # 매일 UTC 기준 20시에 실행 (한국 시간 새벽 5시)
   #   - cron: '0 20 * * *'
-  
   
   # 수동 실행 버튼
   workflow_dispatch:
@@ -16,39 +14,31 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  build-and-run:
     runs-on: ubuntu-latest
-    
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: 1. 저장소 코드 가져오기
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12'
-      
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      - name: 2. Build Docker Image
+        run: docker build -t job-crawler .
 
-      - name: Run Gemini Model & Environment Check
-        run: python analysis/check_version.py
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - name: 3. 컨테이너 실행 및 테스트 (빈 바구니 마운트 적용)
+        run: |
+          docker run --rm \
+          --shm-size=2gb \
+          -v ${{ github.workspace }}/output:/app/output \
+          -e GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
+          -e NOTION_API_KEY="${{ secrets.NOTION_API_KEY }}" \
+          -e NOTION_DATABASE_ID="${{ secrets.NOTION_DATABASE_ID }}" \
+          job-crawler python docker_test.py
 
-      - name: Run crawler
-        run: python main.py
-        env:
-          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
-          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      
-      - name: Upload Artifacts on failure # 실패시 결과물 업로드
+      - name: 4. Upload Artifacts on failure (실패 시 에러 스크린 샷 저장)
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: error-artifacts
           path: |
-            error_screenshot.png
-            error_page.html
+            output/error_screenshot.png
+            output/error_page.html
