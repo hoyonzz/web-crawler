@@ -24,7 +24,7 @@ try:
     invalid_titles = ["ERROR", "Access Denied", "Just a moment", "Attention Required"]
 
     for invalid_word in invalid_titles:
-        if invalid_word in invalid_titles:
+        if invalid_word in driver.title:
             raise Exception(f"봇 장어 시스템 차단 감지됨 (페이지 제목: {driver.title})")
 
     print(f"🎉 성공! 접속한 페이지 제목: '{driver.title}'")
