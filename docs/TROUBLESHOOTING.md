@@ -75,3 +75,24 @@ normalized_score = min(raw_score / TARGET_MAX_SCORE, 1.0)
 판정에 쓰는 내부 점수와 외부에 노출하는 반환 점수는 분리할 수 있다. 또한 정규화 기준값 하나가 다운스트림의 정렬·표시 품질을 좌우하므로, "0~1로 맞춘다"를 넘어 점수 **분포**까지 고려해야 한다.
 
 🔗 commit `190cadf`
+
+---
+
+## 4. LangChain + google-genai SDK 전환 시 재시도 예외 타입 미스매치
+
+**현상**
+Gemini 503(서버 일시 과부하) 대응으로 `tenacity` 재시도를 붙였으나, `google.api_core.exceptions`의 `ServiceUnavailable`·`ResourceExhausted`로 예외를 잡도록 작성하자 재시도가 한 번도 트리거되지 않았다. import는 통과해 에러 없이 "조용히" 첫 시도에 실패하고 끝났다.
+
+**원인**
+`langchain-google-genai` 4.0이 레거시 `google-generativeai`에서 통합 `google-genai` SDK로 전환되면서 예외 체계가 바뀌었다. 실제 발생 예외는 `google.genai.errors.ServerError`(부모: `google.genai.errors.APIError`)인데, 잡으려던 `ResourceExhausted`의 부모는 `google.api_core.exceptions.TooManyRequests`다. 두 계열은 상속 관계가 전혀 없어, `retry_if_exception_type`이 실제 예외를 하나도 매칭하지 못했다.
+
+**해결**
+공식 SDK 소스(`google/genai/errors.py`)로 예외 계층을 확인한 뒤, 재시도 조건을 SDK 버전 변화에 강한 방식으로 작성했다. 예외 메시지의 상태코드(429·5xx) 문자열로 일시적 에러를 판별하는 커스텀 predicate를 `retry_if_exception`에 연결하고, 재시도 동작은 503을 강제 발생시키는 Mock 테스트로 "대기 후 재시도"가 실제로 도는지 눈으로 검증했다.
+
+**배운 점**
+예외 기반 재시도는 import 통과만으로 검증되지 않는다. 잡으려는 예외 타입과 실제로 던져지는 예외 타입이 일치하는지를 반드시 실제 에러(또는 Mock)로 확인해야 한다. 특히 SDK 메이저 버전 전환 시 예외 계층은 호환되지 않을 수 있으므로, 타입 상속에 의존하기보다 상태코드 기반 판별이 더 견고하다.
+
+🔗 commit `b77ba2c
+`
+
+---
