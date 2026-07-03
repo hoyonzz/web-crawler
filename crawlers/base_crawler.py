@@ -1,7 +1,5 @@
 from abc import ABC, abstractmethod
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service as ChromeService
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 
 import time
@@ -28,13 +26,34 @@ class BaseCrawler(ABC):
     def _setup_driver(self):
         # Selenium WebDriver를 설정하고 반환
         chrome_options = Options()
-        chrome_options.add_argument("--headless")
-        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) chorme/123.0.0.0 Safari/537.36"
-        chrome_options.add_argument(f"user-agent={user_agent}")
+        # 최신 헤드리스 모드
+        chrome_options.add_argument("--headless=new")
+        # 깃허브 액션(리눅스) 환경 필수 메모리 최적화 옵션
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
-        service = ChromeService(executable_path=ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+        # 해상도 강제 고정
+        chrome_options.add_argument("--window-size=1920,1080")
+        # 자동화 제어 메시지 숨기기 및 웹드라이버 명찰 제거
+        # chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+        # chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        # chrome_options.add_experimental_option('useAutomationExtension', False)
+        # User-Agent 정상화
+        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) chrome/130.0.0.0 Safari/537.36"
+        chrome_options.add_argument(f"user-agent={user_agent}")
+
+        # Selenium 4.6 이상부터는 webdriver_manager없이 내장 매니저가 자동동작하지만 안정성을 위해 기존 명시적 호출 유지
+        # service = ChromeService(executable_path=ChromeDriverManager().install())
+        driver = webdriver.Chrome(options=chrome_options)
+
+        # JavaScript 단에서 webdriver 속성을 지워버리는 쐐기 스크립트 실행
+        # driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+        #     "source": """
+        #         Object.defineProperty(navigator, 'webdriver', {
+        #             get: () => undefined
+        #         })
+        #     """
+        # })
+        chrome_options.add_argument("--log-level=3")
         return driver
     
     @abstractmethod

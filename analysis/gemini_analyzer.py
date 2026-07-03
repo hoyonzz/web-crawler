@@ -42,22 +42,36 @@ MY_PROFILE = """
 # Pydantic 스키마
 class JobAnalysis(BaseModel):
     career_level: list[Literal["신입", "1~2년", "3년이상", "경력무관"]] = Field(
-        description="공고의 자격요건을 분석하여 요구 경력을 모두 포함. 예: '신입 또는 5년 이상'일 경우 ['신입', '3년이상'] 반환"
+    description=(
+        "공고의 [상단 요약 정보]와 [상세 본문(자격요건)]을 교차 검증하여 실제 요구 경력을 모두 추출합니다. "
+        "【절대 준수 규칙 — 번호 순서대로 적용】 "
+        "1. 진실의 우선순위: 상단 요약이나 플랫폼 태그에 '신입'·'경력무관'이 있어도, 상세 본문(자격요건·지원자격)에 "
+        "'경력 3년 이상' 등 명확한 연차 조건이 있으면 무조건 본문을 1순위로 신뢰합니다. "
+        "2. '무관'의 함정: '경력무관'은 신입도 지원 가능한 경우에만 선택합니다. '경력(연수무관)', '경력직(연차무관)', "
+        "'경력자(연차 상관없음)'처럼 경력자임을 전제하고 연차만 따지지 않는 표현은 신입 지원 불가이므로 "
+        "['1~2년', '3년이상']으로 판정합니다. '경력무관'과 '경력이되 연수무관'은 정반대 의미임에 주의하세요. "
+        "3. 복수 조건: '신입 또는 경력 3년 이상'처럼 여러 범위가 허용되면 ['신입', '3년이상'] 모두 선택합니다. "
+        "4. 범위 매핑: 연차 범위는 겹치는 구간을 모두 포함합니다. '1~4년'→['1~2년','3년이상'], "
+        "'0~3년'→['신입','1~2년','3년이상'], '2년 이상'→['1~2년','3년이상'], '3년 이하'→['신입','1~2년']. "
+        "5. 경력직 추정: 명시적 연차는 없지만 '경력직', '경력자 채용', '실무 경험자'처럼 경력을 전제하는 표현이 있으면 "
+        "['1~2년', '3년이상']으로 판정합니다. "
+        "6. 최종 폴백: 연차도 경력 관련 언급도 전혀 없을 때만 ['경력무관']으로 판정합니다."
+        )
     )
     skill_match: Literal["상", "중", "하"] = Field(
-        description="지원자의 핵심 기술과 공고의 요구사항 매칭도. 다수 일치='상', 일부 일치='중', 거의 없음='하'"
+        description="공고의 필수 요건 중 지원자 보유 기술의 비율로 판정. 필수 기술의 70% 이상 보유='상', 40~70%='중', 40% 미만='하'. 우대사항은 판정에서 제외"
     )
     resume_version: Literal["A", "B"] = Field(
-        description="지원서 버전 추천. 비동기/인프라/DB/백엔드/Django/API/배포 강세='A', LLM/LangChain/에이전트/프롬프트 강세 ='B', 구분이 모호하면 기본값 'B'"
+        description="지원서 버전 추천. 비동기/인프라/DB/백엔드/Django/API/배포 강세='A', LLM/LangChain/에이전트/프롬프트 강세='B', 구분이 모호하거나 양쪽 모두 해당하면='B'"
     )
     application_priority: Literal["즉시지원", "도전", "보존"] = Field(
-        description="지원자의 총 경력과 핵심 기술 일치도를 종합하여 판정. 적합도가 매우 높으면 '즉시지원', 배울 점이 많거나 일부 부족하면 '도전', 매칭도가 낮으면 '보존'"
+        description="판정 규칙(반드시 순서대로 적용): ① career_level에 '신입', '1~2년', '경력무관' 중 하나도 없으면(즉 '3년이상'만 있으면) 지원 자격 미달이므로 다른 조건과 무관하게 무조건 '보존'. ② 지원 가능(①통과)하고 skill_match가 '상'이면 '즉시지원'. ③ 지원 가능하지만 skill_match가 '중' 이하거나 new_to_learn이 3개 이상이면 '도전'"
     )
     fit_score: int = Field(
-        description="지원자의 프로필을 기준으로 이 공고와의 기술적/성장 목표 적합도를 0부터 10까지의 정수로 평가"
+        description="지원자 프로필 기준 적합도 0~10 정수. 기준: 9~10=필수요건 전부 충족+성장방향 일치, 7~8=필수 대부분 충족, 5~6=핵심 일부 충족, 3~4=경력 미달이나 기술 방향은 유사, 0~2=직무 자체가 다름. 경력 미달(3년이상만 요구) 공고는 기술이 맞아도 최대 5점"
     )
     reason: str = Field(
-        description="위의 판정(경력, 매칭도, 이력서 버전, 지원 우선순위)을 내린 핵심적인 논리적 근거를 한국어 1~2문장으로 요약"
+        description="application_priority 판정의 결정적 근거를 첫 문장에, 나머지 판정(매칭도·버전) 근거를 이어서. 한국어 1~2문장"
     )
     required_must_have: list[str] = Field(
         description="공고의 필수 자격 요건 중 지원자가 이미 보유하고 있는 핵심 기술 목록"
@@ -68,16 +82,16 @@ class JobAnalysis(BaseModel):
     preferred_summary: str = Field(
         description="공고의 우대 사항 섹션을 1~2문장으로 간결하게 요약"
     )
+    target_position: str = Field(
+        description="이 공고에서 지원자가 지원해야할 직무 포지션명. 공고에 복수 직무가 있는 경우(예: 계열사별·부문별 채용) 지원자 프로필(Python/백엔드/AI)에 가장 적합한 하나를 선택해 그 직무명을 그대로 기재. 단일 직무 공고면 해당 직무명. 예: 'S/W엔지니어(금융계열사)'"
+    )
 
 # LangCahin의 예외 래핑까지 방어하는 만능 필터 함수
 def should_retry_api_error(e: Exception) -> bool:
     """
     429(할당량 초과) 및 5xx(서버 장애) 상황만 필터링하여 재시도 여부 결정
     """
-    # 원본 APIError가 내용그대로 올라온 경우
-    if isinstance(e, APIError):
-        code = getattr(e, "code", None)
-    
+   
     # LangChain이 감싸서 반환하거나, 테스트 코드의 문자열 예외인 경우
     err_msg = str(e)
     if any(c in err_msg for c in ["429", "500", "502", "503", "504"]):
@@ -101,7 +115,8 @@ def _call_api_with_retry(prompt: str) -> JobAnalysis:
     llm = ChatGoogleGenerativeAI(
         model="gemini-2.5-flash",
         temperature=0,
-        max_retries=0
+        max_retries=0,
+        timeout=60,
     )
     structured_llm = llm.with_structured_output(JobAnalysis)
     return structured_llm.invoke(prompt)
@@ -120,8 +135,13 @@ def analyze_job_posting_with_ai(job_title: str, job_description: str, matched_sk
     ### Candidate Profile
     {my_profile}
 
+    ### Judgment Guidelines
+    - The candidate's target positions are ONLY for 신입(entry-level) to 2 years of experience.
+    - Postings requiring 3+ years of experience are NOT eligible for application.
+
     ### Instructions
     Analyze the [Full Job Posting Text] and the [Pre-extracted Relevant Skills] provided below. 
+    The [Pre-extracted Relevant Skills] are keywords detected by a rule-based filter. Use them as hints, but base your final judgment on the full posting text.
     All string values MUST be written in Korean.
     If a specific piece of information is not found, use the Korean string "정보 없음".
 

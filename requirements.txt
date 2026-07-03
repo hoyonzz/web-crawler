@@ -7,7 +7,6 @@ tenacity==9.1.4
 # Web Crawling & API
 beautifulsoup4==4.14.2
 selenium==4.35.0
-webdriver-manager==4.0.2
 notion-client==2.5.0
 google-api-python-client==2.185.0
 

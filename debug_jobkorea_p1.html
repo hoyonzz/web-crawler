@@ -1,0 +1,32 @@
+<html><head></head><body style=""><div class="recruitList" data-totalcount="0" data-totalcounttext="0">
+        <div class="themeNoData">
+            선택한 조건에 맞는 채용공고가 없습니다.<br>
+            <strong>검색 조건</strong>을 확인해주세요.
+        </div>
+</div>
+
+
+
+        <script>
+             (function () {
+                if (typeof jkcriteoEvt !== 'undefined') {
+                    jkcriteoEvt.gnolist = [];
+                    jkcriteoEvt.load();
+                }
+            })();
+        </script>
+
+<script src="/resources/lib/jquery/jquery-1.10.2.min.js"></script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        //dmp 로그 노출
+        if (jk.public.dmp) {
+            jk.public.dmp.recruit.setImpression({
+                target: {
+                    $show: $(".listItem .dmpItem[dmp-collection]"),
+                    $click: $(".listItem .dmpItem[dmp-collection] .dev-recruit-link")
+                }
+            });
+        }
+    });
+</script></body></html>
