@@ -130,14 +130,14 @@ class PersonalizedJobFilter:
 
         return is_relevant, round(normalized_score, 3)
 
-    def extract_matched_skills(self, job_description: str) -> list[str]:
+    def extract_matched_skills(self, job_description, job_title=None):
         """
         (Notion 태그용)공고 본문에서 실제로 매칭된 기술 키워드 리스트 추출
         """
         job_title = job_title or ""
         job_description = job_description or ""
 
-        full_text = f"{job_title} {job_description}.lower().strip()"
+        full_text = f"{job_title} {job_description}".lower().strip()
 
         if len(full_text) < 10:
             return []
