@@ -1,6 +1,11 @@
 # .dockerignore
 .git
-venv
+.gitignore
+*.pyo
+*.pyd
+venv/
+env/
+.venv/
 __pycache__
 *.pyc
 .env

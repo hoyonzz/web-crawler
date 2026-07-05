@@ -13,7 +13,7 @@ services:
 
     # 4. 볼륨 마운트 로컬의 현재 폴더와 /app폴더 연결
     volumes:
-      - .:/app
+      - ./output:/app/output
 
     # 5. 최종 실행 명령어
-    command: python docker_test.py
+    command: python main.py
