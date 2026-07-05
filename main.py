@@ -14,13 +14,16 @@ from data_processor.career_parser import parse_career_from_header
 
 load_dotenv()
 
-# 테스트 시 분석할 최대 갯수
+# 테스트
 TEST_MODE_LIMIT = 5
 
 # 설정 초기화
 NOTION_API_KEY = os.environ.get("NOTION_API_KEY")
 NOTION_DATABASE_ID = os.environ.get("NOTION_DATABASE_ID")
 notion = notion_client.Client(auth=NOTION_API_KEY)
+
+# LLM 호출간격
+LLM_SLEEP_SEC = 2 if os.environ.get("USE_NVIDIA_BACKFILL", "false").lower() == "true" else 15
 
 
 
@@ -70,7 +73,7 @@ try:
 
     # 상세 정보 수집 단계
     if TEST_MODE_LIMIT is not None:
-        PER_SOURCE_LIMIT = 4
+        PER_SOURCE_LIMIT = 2
         per_source_count = {}
         jobs_to_process = []
         for job in new_jobs_basic_info:
@@ -157,7 +160,7 @@ try:
             print(" -> API 한도 방어(5 RPM)를 위해 15초 대기합니다...")
             failed_count += 1
             error_stats["AI분석에러"] += 1
-            time.sleep(15)
+            time.sleep(LLM_SLEEP_SEC)
             continue
         
         rule_career = parse_career_from_header(description)
@@ -199,7 +202,7 @@ try:
         # 마지막 항목에서는 대기할 필요가 없으므로 조건추가
         if i < len(full_new_jobs) - 1:
             print(" -> API 속도 제어를 위해 15초 대기합니다...")
-            time.sleep(15)
+            time.sleep(LLM_SLEEP_SEC)
 
 finally:
     # 모든 작업이 끝난 후, 마지막에 드라이버 일괄 종료

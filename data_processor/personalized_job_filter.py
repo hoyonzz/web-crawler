@@ -98,15 +98,26 @@ class PersonalizedJobFilter:
             return False, 0.0
         
         # [Guard 1] 절대 제외 룰 (무조건 입구 컷)
-        if any(self._contains(full_text, w) for w in self.exclude_absolute):
-            return False, 0.0
+        for word in self.exclude_absolute:
+            if self._contains(full_text, word):
+                print(f" [제외 상세] 절대 제외 케워드 '{word}' 감지")
+                return False, 0.0
         
         # [Guard 2] 조건부 제외 룰 (핵심 스택 부재 + 특정 생태계 요구)
         for rule in self.exclude_conditional:
-            missing_all = not any(self._contains(full_text, w) for w in rule.get('if_missing_all', []))
-            present_any = any(self._contains(full_text, w) for w in rule.get('and_present_any', []))
+            has_core_stack = False
+            for word in rule.get('if_missing_all', []):
+                if self._contains(full_text, word):
+                    has_core_stack = True
+                    break
+            found_exclude_word = None
+            for word in rule.get('and_present_any', []):
+                if self._contains(full_text, word):
+                    found_exclude_word = word
+                    break
 
-            if missing_all and present_any:
+            if not has_core_stack and found_exclude_word:
+                print(f" [제외 상세] 조건부 제외 - 핵심 스택 부재 상태에서 '{found_exclude_word}' 감지")
                 return False, 0.0
             
         # [Scoring] 가중치 점수 합산 (Guard를 무사히 통과한 공고만 연산)

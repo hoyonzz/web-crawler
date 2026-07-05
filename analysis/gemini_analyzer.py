@@ -99,6 +99,32 @@ def should_retry_api_error(e: Exception) -> bool:
     
     return False
 
+def _create_llm():
+    """
+    환경변수에 따라 LLM 프로바이더를 선택해서 생성
+    - USE_NVIDIA_BACKFILL=true -> NVIDIA NIM(40RPM)
+    - 기본 -> gemini(무료티어)
+    """
+    use_nvidia = os.environ.get("USE_NVIDIA_BACKFILL", "false").lower() == "true"
+
+    if use_nvidia:
+        from langchain_nvidia_ai_endpoints import ChatNVIDIA
+        return ChatNVIDIA(
+            model = 'qwen/qwen3.5-122b-a10b',
+            api_key=os.environ["NVIDIA_API_KEY"],
+            temperature=0,
+        )
+    
+    return ChatGoogleGenerativeAI(
+        model='gemini-2.5-flash',
+        temperature=0,
+        max_retries=0,
+        timeout=60,
+    )
+
+_llm = _create_llm()
+_structured_llm = _llm.with_structured_output(JobAnalysis)
+
 # Tenacity 데코레이터: 최대 3번 시도, 재시도 간격은 4초->8초->10초로 증가
 @retry(
         stop=stop_after_attempt(4),
@@ -111,15 +137,7 @@ def _call_api_with_retry(prompt: str) -> JobAnalysis:
     내부적으로 LangChain API를 호출하고 재시도를 담당하는 헬퍼 함수
     """
     print(" -> API 호출 시도 중...")
-    # 랭체인의 재시도를 끄고, Tenacity로 조절
-    llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
-        temperature=0,
-        max_retries=0,
-        timeout=60,
-    )
-    structured_llm = llm.with_structured_output(JobAnalysis)
-    return structured_llm.invoke(prompt)
+    return _structured_llm.invoke(prompt)
     
 
 # 핵심 분석 함수
