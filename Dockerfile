@@ -8,8 +8,9 @@ WORKDIR /app
 
 # 3. 크롬 및 시스템 패키지 설치 블록
 RUN apt-get update && apt-get install -y \
-    chromium \
-    chromium-driver \
+    wget \
+    unzip \
+    ca-certificates \
     fonts-nanum \
     fonts-liberation \
     libnss3 \ 
