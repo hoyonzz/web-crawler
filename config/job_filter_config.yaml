@@ -95,7 +95,7 @@ filter_rules:
         - fastapi
       and_present_any:
         - react
-        - veu
+        - vue
         - 프론트엔드
         - frontend
         - next.js
@@ -104,6 +104,18 @@ filter_rules:
         - ios
         - swift
         - flutter
+
+    - description: "파이썬 스택 없이 C/C++/C# 단독 생태계 요구"
+      if_missing_all: 
+        - python
+        - django
+        - fastapi
+      and_present_any: 
+        - c++
+        - c#
+        - .net
+        - 임베디드
+        - 펌웨어
 
   # [절대 제외 룰]
   exclude_absolute:
