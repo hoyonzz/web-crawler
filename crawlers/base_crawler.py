@@ -28,7 +28,7 @@ class BaseCrawler(ABC):
         # Selenium WebDriver를 설정하고 반환
         chrome_options = Options()
         # 최신 헤드리스 모드
-        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--headless=new")
         # 깃허브 액션(리눅스) 환경 필수 메모리 최적화 옵션
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-setuid-sandbox")
@@ -36,7 +36,7 @@ class BaseCrawler(ABC):
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--disable-software-rasterizer")
         # 포트 개방
-        chrome_options.add_argument("--remote-debugging-port=9222")
+        # chrome_options.add_argument("--remote-debugging-port=9222")
         # 해상도 강제 고정
         chrome_options.add_argument("--window-size=1920,1080")
         # User-Agent 정상화
@@ -44,9 +44,15 @@ class BaseCrawler(ABC):
         chrome_options.add_argument(f"--user-agent={user_agent}")
         # chrome_options.add_argument("--log-level=3")
 
+        chrome_options.add_argument("--user-data-dir=/app/output/chrome-data")
+        chrome_options.add_argument("--disable-extensions")
+
         # Docker에 apt-get으로 설치한 시스템 Chromium 경로 지정
         chrome_options.binary_location = "/usr/bin/chromium"
-        service = Service(executable_path="/usr/bin/chromedriver")
+        service = Service(
+            executable_path="/usr/bin/chromedriver",
+            service_args=["--verbose", "--log-path=/app/output/chromedriver.log"]
+        )
 
         driver = webdriver.Chrome(service=service, options=chrome_options)
         return driver
