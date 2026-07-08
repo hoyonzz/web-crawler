@@ -15,7 +15,7 @@ from data_processor.career_parser import parse_career_from_header
 load_dotenv()
 
 # 테스트
-TEST_MODE_LIMIT = 5
+TEST_MODE_LIMIT = None
 
 # 설정 초기화
 NOTION_API_KEY = os.environ.get("NOTION_API_KEY")
@@ -42,7 +42,7 @@ try:
     for name, crawler in crawler_instances.items():
         print(f"\n--- {name} 실행 ---")
         try:
-            pages = 5 if name != 'WantedCrawler' else 1
+            pages = 5 if name == 'JobKoreaCrawler' else 1
             jobs = crawler.crawl(keyword='백엔드', pages_to_crawl=pages, is_newbie=True)
             all_jobs_basic_info.extend(jobs)
             print(f"   -> {len(jobs)}개의 공고 목록 수집 완료.")
@@ -94,7 +94,8 @@ try:
         "노션저장실패": 0,
     }
 
-    for job in jobs_to_process:
+    for i, job in enumerate(jobs_to_process):
+        print(f" ({i+1}/{len(jobs_to_process)}) {job.get('title', '')[:30]} 상세 수집 중...")
         source_crawler_name = job.get('source', '') + "Crawler"
         crawler = crawler_instances.get(source_crawler_name)
         if not crawler: 
@@ -107,7 +108,18 @@ try:
             job.update(details)
             full_new_jobs.append(job)
         except Exception as e:
-            print(f"🚨 [오류] 상세 정보 수집 실패: {job.get('title')}, {e}")
+            if " invalid session id" in str(e):
+                print(" [복구] 드라이버 세션 사망 감지 - 재생성 후 재시도합니다...")
+                try:
+                    crawler.restart_driver()
+                    details = crawler.get_job_description(job['link'])
+                    job.update(details)
+                    full_new_jobs.append(job)
+                    continue
+                except Exception as e2:
+                    print(f"🚨 [오류] 재시도도 실패: {job.get('title')}, {e2}")
+            else:
+                print(f"🚨 [오류] 상세 정보 수집 실패: {job.get('title')}, {e}")
             failed_count += 1
             error_stats["상세수집실패"] += 1
 
@@ -122,7 +134,8 @@ try:
     
     filtered_stats = {
         "제외키워드": 0,
-        "점수미달": 0
+        "점수미달": 0,
+        "AI부적합": 0,
     }
 
     for i, job in enumerate(full_new_jobs):
@@ -157,7 +170,7 @@ try:
         if not analysis:
             print(" -> 🚨[오류] AI 분석에 실패했습니다. 다음 공고로 넘어갑니다.")
             # 분석 실패 시에도 API 과부하를 피하기 위해 대기하기
-            print(" -> API 한도 방어(5 RPM)를 위해 15초 대기합니다...")
+            print(f" -> API 한도 방어(5 RPM)를 위해 {LLM_SLEEP_SEC}초 대기합니다...")
             failed_count += 1
             error_stats["AI분석에러"] += 1
             time.sleep(LLM_SLEEP_SEC)
@@ -168,6 +181,10 @@ try:
             if set(rule_career) != set(analysis.career_level):
                 print(f" -> [경력 보정] LLM: {analysis.career_level} -> 룰: {rule_career}")
             analysis.career_level = rule_career
+        
+        if analysis.skill_match == "하" and analysis.application_priority == "보존":
+            print(f" -> [AI 부적합 표시] 적합도:{analysis.fit_score} | 적재는 진행 (보존 격리)")
+            filtered_stats["AI부적합"] += 1
 
         # Notion에 저장
         properties_to_save = {
@@ -201,7 +218,7 @@ try:
         # 속도 제어 로직 추가 Gemini API의 분당 요청 한도 15RPM을 준수하기 위해 대기
         # 마지막 항목에서는 대기할 필요가 없으므로 조건추가
         if i < len(full_new_jobs) - 1:
-            print(" -> API 속도 제어를 위해 15초 대기합니다...")
+            print(f" -> API 속도 제어를 위해 {LLM_SLEEP_SEC}초 대기합니다...")
             time.sleep(LLM_SLEEP_SEC)
 
 finally:
@@ -211,7 +228,7 @@ finally:
         crawler.close_driver()
     print("✅ 모든 드라이버가 안전하게 종료되었습니다.")
 
-filter_detail_str = f"제외 룰: {filtered_stats['제외키워드']}건, 점수 미달: {filtered_stats['점수미달']}건"
+filter_detail_str = f"제외 룰: {filtered_stats['제외키워드']}건, 점수 미달: {filtered_stats['점수미달']}건, AI부적합: {filtered_stats['AI부적합']}건"
 error_detail_str = (f"수집 실패: {error_stats['상세수집실패']}건, 빈값: {error_stats['상세정보빈값']}건, "
                     f"AI 에러: {error_stats['AI분석에러']}건, DB 저장 에러: {error_stats['노션저장실패']}건")
 
@@ -219,10 +236,10 @@ summary_text = f"""## 📊 채용 공고 AI 분석 파이프라인 결과 ({date
 
 | 항목 | 건수 | 상세 내역 |
 |:---|:---:|:---|
-| **총 수집 공고** | {len(all_jobs_basic_info)} | 각 플랫폼별 1페이지 수집 합계 |
+| **총 수집 공고** | {len(all_jobs_basic_info)} | 플랫폼별 수집 합계 |
 | **신규 (중복 제외)** | {len(new_jobs_basic_info)} | Notion DB와 링크 비교 후 남은 건수 |
-| **✅ Notion 적재 성공** | **{success_count}** | **AI 분석 및 구조화 완료** |
-| **📉 1차 필터 탈락** | {filtered_count} | {filter_detail_str} |
+| **✅ Notion 적재 성공** | **{success_count}** | 그중 AI부적합(보존 격리): {filtered_stats['AI부적합']}건 |
+| **📉 1차 필터 탈락** | {filtered_count} | 제외 룰: {filtered_stats['제외키워드']}건, 점수 미달: {filtered_stats['점수미달']}건 |
 | **🚨 수집/분석 에러** | {failed_count} | {error_detail_str} |
 """
 

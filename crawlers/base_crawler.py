@@ -69,6 +69,18 @@ class BaseCrawler(ABC):
         # 자식 클래스는 이 메서드를 반드시 구현
         pass
 
+    def restart_driver(self):
+        """
+        죽은 세션을 버리고 드라이버를 재생성
+        """
+        try:
+            self.driver.quit()
+        except Exception:
+            pass
+
+        self.driver = self._setup_driver()
+        print(" [복구] 드라이버 재생성 완료")
+
     def close_driver(self):
         # 드라이버를 안전하게 종료
         if self.driver:

@@ -7,7 +7,6 @@ from typing import Literal
 
 # llm
 from langchain_google_genai import ChatGoogleGenerativeAI
-from google.genai.errors import APIError
 
 # network
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception
@@ -59,7 +58,15 @@ class JobAnalysis(BaseModel):
         )
     )
     skill_match: Literal["상", "중", "하"] = Field(
-        description="공고의 필수 요건 중 지원자 보유 기술의 비율로 판정. 필수 기술의 70% 이상 보유='상', 40~70%='중', 40% 미만='하'. 우대사항은 판정에서 제외"
+    description=(
+        "공고의 필수 요건 중 지원자 보유 기술의 비율로 판정합니다. "
+        "필수 기술의 70% 이상 보유='상', 40~70%='중', 40% 미만='하'. 우대사항은 판정에서 제외합니다. "
+        "【우선 적용 예외】 비율과 무관하게, 직무의 '핵심(주력) 기술'이 지원자에게 없으면 '하'로 판정합니다. "
+        "핵심 기술이란 주요업무를 수행하는 데 필수적인 주력 언어/기술을 말합니다. "
+        "예: 'C/C++ 기반 엔진 개발이 주업무이고 Python은 스크립트·자동화 보조'인 공고에서 "
+        "지원자가 Python만 보유했다면, 보유 비율이 50%여도 핵심(C/C++)이 결여됐으므로 '하'입니다. "
+        "반대로 Python/Django가 주력이고 타 기술이 보조인 공고는 비율 기준을 그대로 적용합니다."
+        )
     )
     resume_version: Literal["A", "B"] = Field(
         description="지원서 버전 추천. 비동기/인프라/DB/백엔드/Django/API/배포 강세='A', LLM/LangChain/에이전트/프롬프트 강세='B', 구분이 모호하거나 양쪽 모두 해당하면='B'"
@@ -68,6 +75,7 @@ class JobAnalysis(BaseModel):
         description="판정 규칙(반드시 순서대로 적용): ① career_level에 '신입', '1~2년', '경력무관' 중 하나도 없으면(즉 '3년이상'만 있으면) 지원 자격 미달이므로 다른 조건과 무관하게 무조건 '보존'. ② 지원 가능(①통과)하고 skill_match가 '상'이면 '즉시지원'. ③ 지원 가능하지만 skill_match가 '중' 이하거나 new_to_learn이 3개 이상이면 '도전'"
     )
     fit_score: int = Field(
+        ge = 0, le=10,
         description="지원자 프로필 기준 적합도 0~10 정수. 기준: 9~10=필수요건 전부 충족+성장방향 일치, 7~8=필수 대부분 충족, 5~6=핵심 일부 충족, 3~4=경력 미달이나 기술 방향은 유사, 0~2=직무 자체가 다름. 경력 미달(3년이상만 요구) 공고는 기술이 맞아도 최대 5점"
     )
     reason: str = Field(
@@ -89,12 +97,20 @@ class JobAnalysis(BaseModel):
 # LangCahin의 예외 래핑까지 방어하는 만능 필터 함수
 def should_retry_api_error(e: Exception) -> bool:
     """
-    429(할당량 초과) 및 5xx(서버 장애) 상황만 필터링하여 재시도 여부 결정
+    재시도할 가치가 있는 일시적 에러인지 판정
+    - 429(할당량 초과), 5xx(서버 장애): 상태코드 문자열로 감지
+    - 타임아웃(응답 지연): 상태코드가 없으므로 에러 메시지의 단어로 감지    
     """
    
     # LangChain이 감싸서 반환하거나, 테스트 코드의 문자열 예외인 경우
     err_msg = str(e)
+
+    # 1. 상태코드 기반 판정
     if any(c in err_msg for c in ["429", "500", "502", "503", "504"]):
+        return True
+    
+    # 2. 타임 아웃 기반 판정
+    if any(c in err_msg.lower() for c in ["timeout", "timed out"]):
         return True
     
     return False
@@ -125,7 +141,7 @@ def _create_llm():
 _llm = _create_llm()
 _structured_llm = _llm.with_structured_output(JobAnalysis)
 
-# Tenacity 데코레이터: 최대 3번 시도, 재시도 간격은 4초->8초->10초로 증가
+# Tenacity 데코레이터: 최대 4번 시도, 재시도 간격은 4초->8초->10초로 증가
 @retry(
         stop=stop_after_attempt(4),
         wait=wait_exponential(multiplier=2, min=4, max=10),
@@ -156,6 +172,20 @@ def analyze_job_posting_with_ai(job_title: str, job_description: str, matched_sk
     ### Judgment Guidelines
     - The candidate's target positions are ONLY for 신입(entry-level) to 2 years of experience.
     - Postings requiring 3+ years of experience are NOT eligible for application.
+    - RULE for skill_match (apply in this order):
+    1. If the role's primary language/stack includes Python or the Python ecosystem
+        (Django, FastAPI, LangChain, data pipelines), do NOT mark "하" for missing
+        secondary skills (e.g., Go, Kubernetes, Kafka listed alongside Python).
+        Judge by the ratio rule instead.
+    2. Mark "하" ONLY when the core product is built on a stack entirely absent from
+        the candidate's profile — e.g., C/C++ engines, embedded/hardware, pure ML
+        research centered on PyTorch/TensorFlow model training, mobile-native apps.
+    3. LLM application roles (RAG, agents, prompt-driven services using LLM APIs)
+        match the candidate's Track B — these are NOT "pure ML research".
+    - RULE for application_priority: If career_level includes 신입 or 1~2년, the value
+    MUST be "즉시지원" or "도전" — never "보존". "보존" is reserved ONLY for postings
+    where the candidate cannot apply (3+ years required) or the role itself is unrelated.
+
 
     ### Instructions
     Analyze the [Full Job Posting Text] and the [Pre-extracted Relevant Skills] provided below. 
