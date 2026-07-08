@@ -28,17 +28,21 @@ class BaseCrawler(ABC):
         # Selenium WebDriver를 설정하고 반환
         chrome_options = Options()
         # 최신 헤드리스 모드
-        chrome_options.add_argument("--headless=new")
+        chrome_options.add_argument("--headless")
         # 깃허브 액션(리눅스) 환경 필수 메모리 최적화 옵션
         chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-setuid-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--disable-software-rasterizer")
+        # 포트 개방
+        chrome_options.add_argument("--remote-debugging-port=9222")
         # 해상도 강제 고정
         chrome_options.add_argument("--window-size=1920,1080")
         # User-Agent 정상화
         user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) chrome/130.0.0.0 Safari/537.36"
-        chrome_options.add_argument(f"user-agent={user_agent}")
-        chrome_options.add_argument("--log-level=3")
+        chrome_options.add_argument(f"--user-agent={user_agent}")
+        # chrome_options.add_argument("--log-level=3")
 
         # Docker에 apt-get으로 설치한 시스템 Chromium 경로 지정
         chrome_options.binary_location = "/usr/bin/chromium"
