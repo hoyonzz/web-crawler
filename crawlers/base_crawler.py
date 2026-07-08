@@ -42,7 +42,7 @@ class BaseCrawler(ABC):
         chrome_options.add_argument(f"--user-agent={user_agent}")
         # chrome_options.add_argument("--log-level=3")
 
-        chrome_options.add_argument("--user-data-dir=tmp/chrome-data")
+        chrome_options.add_argument("--user-data-dir=/tmp/chrome-data")
         chrome_options.add_argument("--disable-extensions")
 
         # Docker에 apt-get으로 설치한 시스템 Chromium 경로 지정
