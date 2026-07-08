@@ -72,7 +72,6 @@ filter_rules:
         - python
         - django
         - fastapi
-        - flask
       and_present_any: 
         - java
         - spring
@@ -84,20 +83,29 @@ filter_rules:
         - python
         - django
         - fastapi
-        - flask
       and_present_any: 
         - node
         - node.js
         - nestjs
         - express
+    - description: "파이썬 스택 없이 프론트엔드/모바일 단독 요구"
+      if_missing_all:
+        - python
+        - django
+        - fastapi
+      and_present_any:
+        - react
+        - veu
+        - 프론트엔드
+        - frontend
+        - next.js
+        - 안드로이드
+        - android
+        - ios
+        - swift
+        - flutter
 
   # [절대 제외 룰]
   exclude_absolute:
-    - 프론트엔드
-    - react
-    - vue
-    - 안드로이드
-    - ios
     - 퍼블리셔
-    - 국비
-    - 블록체인
+    - 국비교육생 모집
