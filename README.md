@@ -52,7 +52,7 @@ graph TD
 ```
 
 - LLM은 용도별 이원화: 대량 백필은 NVIDIA NIM(Qwen3.5, 40 RPM), 일일 운영은 Gemini 2.5 Flash(무료 티어) — 환경변수 한 줄로 전환.
-- GitHub Actions cron 자동화는 구축 완료 상태이나, 데이터센터 IP에 대한 플랫폼 측 봇 차단(CloudFront 403) 이슈로 스케줄 가동은 보류 중 — 현재는 로컬 실행으로 운영하며, 차단 대응은 2단계 과제.
+- GitHub Actions로 컨테이너를 빌드·실행하는 CI 파이프라인 구축. 3개 플랫폼 모두 GHA 환경에서 수집 성공을 실측 확인했으며, 스케줄(cron) 자동화는 무료 LLM 티어의 요청 한도를 관측한 뒤 활성화 예정 — 현재는 수동 트리거(workflow_dispatch)로 운영.
 
 ---
 
