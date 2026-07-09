@@ -144,7 +144,7 @@ _structured_llm = _llm.with_structured_output(JobAnalysis)
 # Tenacity 데코레이터: 최대 4번 시도, 재시도 간격은 4초->8초->10초로 증가
 @retry(
         stop=stop_after_attempt(4),
-        wait=wait_exponential(multiplier=2, min=4, max=10),
+        wait=wait_exponential(multiplier=2, min=5, max=60),
         retry=retry_if_exception(should_retry_api_error),
         reraise=True
 )
