@@ -144,7 +144,7 @@ _structured_llm = _llm.with_structured_output(JobAnalysis)
 # Tenacity 데코레이터: 최대 4번 시도, 재시도 간격은 4초->8초->10초로 증가
 @retry(
         stop=stop_after_attempt(4),
-        wait=wait_exponential(multiplier=2, min=4, max=10),
+        wait=wait_exponential(multiplier=2, min=5, max=60),
         retry=retry_if_exception(should_retry_api_error),
         reraise=True
 )
@@ -182,9 +182,9 @@ def analyze_job_posting_with_ai(job_title: str, job_description: str, matched_sk
         research centered on PyTorch/TensorFlow model training, mobile-native apps.
     3. LLM application roles (RAG, agents, prompt-driven services using LLM APIs)
         match the candidate's Track B — these are NOT "pure ML research".
-    - RULE for application_priority: If career_level includes 신입 or 1~2년, the value
-    MUST be "즉시지원" or "도전" — never "보존". "보존" is reserved ONLY for postings
-    where the candidate cannot apply (3+ years required) or the role itself is unrelated.
+    - RULE for application_priority: 
+    1. If career_level is only "3년이상", or if fit_score is 2 or below (completely unrelated role), it MUST be "보존".
+    2. If the role is eligible (신입/1~2년/경력무관) AND functionally related (fit_score >= 3), assign "즉시지원" or "도전" based on skill_match.
 
 
     ### Instructions

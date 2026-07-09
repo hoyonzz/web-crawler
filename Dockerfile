@@ -7,7 +7,11 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # 3. 크롬 및 시스템 패키지 설치 블록
-RUN apt-get update && apt-get install -y chromium chromium-driver && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \
+    chromium \
+    chromium-driver \
+    fonts-nanum \
+    && rm -rf /var/lib/apt/lists/*
 
 # 4. 의존성 설치
 COPY requirements.txt .
@@ -16,5 +20,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 5. 프로젝트 전체 코드 복사
 COPY . .
 
+# [추가] 파이썬 출력 버퍼링 방지
+ENV PYTHONUNBUFFERED=1
+
 # 6. 기본 실행 명령어
-CMD ["echo", "Ready for the next step!"]
+CMD ["python", "main.py"]
