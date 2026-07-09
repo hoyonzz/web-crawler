@@ -8,25 +8,9 @@ WORKDIR /app
 
 # 3. 크롬 및 시스템 패키지 설치 블록
 RUN apt-get update && apt-get install -y \
-    wget \
-    unzip \
-    ca-certificates \
+    chromium \
+    chromium-driver \
     fonts-nanum \
-    fonts-liberation \
-    libnss3 \ 
-    libasound2 \
-    libxss1 \
-    libatk-bridge2.0-0 \
-    libgtk-3-0 \
-    libxkbcommon0 \
-    libcups2 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxrandr2 \
-    libpango-1.0-0 \
-    libcairo2 \
-    libatspi2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # 4. 의존성 설치
