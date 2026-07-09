@@ -18,6 +18,15 @@ RUN apt-get update && apt-get install -y \
     libxss1 \
     libatk-bridge2.0-0 \
     libgtk-3-0 \
+    libxkbcommon0 \
+    libcups2 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libpango-1.0-0 \
+    libcairo2 \
+    libatspi2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # 4. 의존성 설치
