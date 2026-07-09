@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
-
+import os
 import time
 import random
 
@@ -38,9 +38,17 @@ class BaseCrawler(ABC):
         user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) chrome/130.0.0.0 Safari/537.36"
         chrome_options.add_argument(f"--user-agent={user_agent}")
         # chrome_options.add_argument("--log-level=3")
+        
+        if os.path.exists("/usr/bin/chromium"):
+            chrome_options.binary_location = "/usr/bin/chromium"
+            service = Service(
+                executable_path="/usr/bin/chromedriver",
+                log_output="output/chromedriver.log",
+                service_args=["--verbose"],
+            )
+            return webdriver.Chrome(options=chrome_options, service=service)
 
-        driver = webdriver.Chrome(options=chrome_options)
-        return driver
+        return webdriver.Chrome(options=chrome_options)
     
     @abstractmethod
     def crawl(self, keyword: str, pages_to_crawl: int = 1, is_newbie: bool = False):

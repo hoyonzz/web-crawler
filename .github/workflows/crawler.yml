@@ -19,6 +19,11 @@ jobs:
 
       - name: 2. Docker Image 빌드
         run: docker build -t job-crawler .
+      
+      - name: 2.5. 크로미옴 단독 기동 검증
+        run: |
+          docker run --rm job-crawler chromium --headless --no-sandbox \
+            --disable-dev-shm-usage --dump-dom about:blank | head -20
 
       - name: 3. 컨테이너 실행 및 파이프라인 가동
         run: |
