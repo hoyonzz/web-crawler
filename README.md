@@ -51,7 +51,7 @@ graph TD
 ```
 
 - LLM은 용도별 이원화: 대량 백필은 NVIDIA NIM(Qwen3.5, 40 RPM), 일일 운영은 Gemini 2.5 Flash(무료 티어) — 환경변수 한 줄로 전환.
-- GitHub Actions cron 자동화는 구축 완료 상태이나, 데이터센터 IP에 대한 플랫폼 측 봇 차단(CloudFront 403) 이슈로 스케줄 가동은 보류 중 — 현재는 로컬 실행으로 운영하며, 차단 대응은 2단계 과제.
+- GitHub Actions cron 자동화는 구축 완료 상태이나, 데이터센터 IP에 대한 플랫폼 측 봇 차단(CloudFront 403) 이슈로 원티드는 로컬 실행, 잡코리아와 점핏 자동 수집 가동 중.
 
 ---
 
@@ -132,4 +132,4 @@ AI가 판정하는 속성(우선순위·매칭도·적합도)과 사람이 관�
 - 중복 확인 최적화 (건별 쿼리 → 전체 링크 1회 로드 + set 대조)
 - LangGraph 오케스트레이션 (조건부 엣지·재시도·reflection 노드)
 - 테스트 + CI 품질 게이트 (pytest / ruff / mypy)
-- GHA 스케줄 재가동 (봇 차단 대응 후), 실행 알림 (Slack/Telegram)
+- 원티드 봇 차단 대응(프록시/우회) 후 3개 플랫폼 완전 자동화, 실행 알림 (Slack/Telegram)
