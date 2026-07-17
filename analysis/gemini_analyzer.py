@@ -1,4 +1,5 @@
 import os
+import re
 from dotenv import load_dotenv
 
 # type
@@ -141,10 +142,23 @@ def _create_llm():
 _llm = _create_llm()
 _structured_llm = _llm.with_structured_output(JobAnalysis)
 
+_fallback_wait = wait_exponential(multiplier=2, min=5, max=60)
+
+def wait_for_retry(retry_state):
+    """LLM이 지정한 retryDelay만큼, 아니면 지수 백오프"""
+    exc = retry_state.outcome.exception() if retry_state.outcome else None
+
+    if exc and "retry in" in str(exc):
+        m = re.search(r"retry in (\d+(?:\.\d+)?)s", str(exc))
+        if m:
+            delay = float(m.group(1)) + 2
+            return min(delay, 90)
+        
+    return _fallback_wait
 # Tenacity 데코레이터: 최대 4번 시도, 재시도 간격은 4초->8초->10초로 증가
 @retry(
         stop=stop_after_attempt(4),
-        wait=wait_exponential(multiplier=2, min=5, max=60),
+        wait=wait_for_retry,
         retry=retry_if_exception(should_retry_api_error),
         reraise=True
 )

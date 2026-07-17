@@ -43,8 +43,6 @@ class BaseCrawler(ABC):
             chrome_options.binary_location = "/usr/bin/chromium"
             service = Service(
                 executable_path="/usr/bin/chromedriver",
-                log_output="output/chromedriver.log",
-                service_args=["--verbose"],
             )
             return webdriver.Chrome(options=chrome_options, service=service)
 

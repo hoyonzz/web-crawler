@@ -29,15 +29,9 @@ jobs:
           -e NOTION_API_KEY="${{ secrets.NOTION_API_KEY }}" \
           -e NOTION_DATABASE_ID="${{ secrets.NOTION_DATABASE_ID }}" \
           job-crawler python main.py
-      - name: 3.5. output 폴더 소유권 변경 및 로그 출력
+      - name: 3.5. output 폴더 아티팩트 업로드 준비
         if: always()
-        run: |
-          # 1. 루트가 만든 파일들의 소유권을 현재 깃허브 유저로 강제 변경
-          sudo chown -R $USER:$USER output/
-
-          # 2. 크롬 드라이버 에러 로그를 깃허브 액션 화면에 바로 출력
-          echo "=== 🚨 ChromeDriver 유언장 (Log) 🚨 ==="
-          cat output/chromedriver.log || echo "로그 파일이 없습니다."
+        run: sudo chown -R $USER:$USER output/
           
       - name: 4. 실행 로그 및 에러 아티팩트 저장
         if: always()
