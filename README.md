@@ -91,9 +91,9 @@ graph TD
 AI가 판정하는 속성(우선순위·매칭도·적합도)과 사람이 관리하는 상태(새로 수집됨/검토중/완료)를 분리해,
 "AI는 추천, 결정은 사람"의 경계를 보드 구조에 반영했다. 부적합 격리분은 뷰 필터로 시야에서 제외하되 데이터는 보존한다.
 
-<img width="1920" height="1080" alt="Notion 아카이브 메인 — 판정 결과가 속성 단위로 적재된 테이블 뷰" src="...">
+<img width="1920" height="1080" alt="Notion 아카이브 메인 — 판정 결과가 속성 단위로 적재된 테이블 뷰" src="https://github.com/user-attachments/assets/848f0eed-21c8-4c00-b3eb-aed851a3966e" />>
 
-<img width="1920" height="1080" alt="Notion 지원 보드 — 우선순위별 칸반과 판정 상세" src="...">
+<img width="1920" height="1080" alt="Notion 지원 보드 — 우선순위별 칸반과 판정 상세"src="https://github.com/user-attachments/assets/5d3df86d-e2fc-4a92-94f6-bf999e259f56" />>
 ---
 
 ## 기술 스택
